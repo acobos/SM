@@ -29,6 +29,10 @@ fig:2-thres
 fig:2-roc
 fig:2-roc-comp
 fig:2-confounding
+fig:3-censoring
+fig:3-fup-and-data
+eq:cox
+fig:3-forest
 the-general-linear-model-glm
 data
 fitting-a-glm
@@ -66,3 +70,16 @@ comparing-models-1
 confounding-1
 interaction-effect-modification-1
 model-diagnostics
+survival-analysis-and-cox-regression-models
+time-to-event-variables-t
+censoring
+survival-objects-in-r
+survival-and-related-functions
+estimating-the-survival-function
+quantiles-of-the-survival-time
+plotting-the-estimated-survival-function
+estimating-the-survival-function-in-independent-samples
+comparing-the-survival-function-in-independent-samples
+the-cox-model
+fitting-a-cox-model
+assessing-the-proportional-hazards-ph-assumption
