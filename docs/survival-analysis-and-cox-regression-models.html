@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+<head>
+
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>3 Survival analysis and Cox regression models | Statistical Modeling for Clinical Researchers</title>
+  <meta name="description" content="3 Survival analysis and Cox regression models | Statistical Modeling for Clinical Researchers" />
+  <meta name="generator" content="bookdown 0.29 and GitBook 2.6.7" />
+
+  <meta property="og:title" content="3 Survival analysis and Cox regression models | Statistical Modeling for Clinical Researchers" />
+  <meta property="og:type" content="book" />
+  
+  
+  
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="3 Survival analysis and Cox regression models | Statistical Modeling for Clinical Researchers" />
+  
+  
+  
+
+<meta name="author" content="Albert Cobos" />
+
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  
+  
+<link rel="prev" href="the-logistic-regression-model-lrm.html"/>
+
+<script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
+<link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-table.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-highlight.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-search.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-fontsettings.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-clipboard.css" rel="stylesheet" />
+
+
+
+
+
+
+
+
+<link href="libs/anchor-sections-1.1.0/anchor-sections.css" rel="stylesheet" />
+<link href="libs/anchor-sections-1.1.0/anchor-sections-hash.css" rel="stylesheet" />
+<script src="libs/anchor-sections-1.1.0/anchor-sections.js"></script>
+<script src="libs/kePrint-0.0.1/kePrint.js"></script>
+<link href="libs/lightable-0.0.1/lightable.css" rel="stylesheet" />
+<script src="libs/htmlwidgets-1.6.1/htmlwidgets.js"></script>
+<script src="libs/rglWebGL-binding-0.110.2/rglWebGL.js"></script>
+<link href="libs/rglwidgetClass-0.110.2/rgl.css" rel="stylesheet" />
+<script src="libs/rglwidgetClass-0.110.2/rglClass.src.js"></script>
+<script src="libs/rglwidgetClass-0.110.2/utils.src.js"></script>
+<script src="libs/rglwidgetClass-0.110.2/buffer.src.js"></script>
+<script src="libs/rglwidgetClass-0.110.2/subscenes.src.js"></script>
+<script src="libs/rglwidgetClass-0.110.2/shaders.src.js"></script>
+<script src="libs/rglwidgetClass-0.110.2/textures.src.js"></script>
+<script src="libs/rglwidgetClass-0.110.2/projection.src.js"></script>
+<script src="libs/rglwidgetClass-0.110.2/mouse.src.js"></script>
+<script src="libs/rglwidgetClass-0.110.2/init.src.js"></script>
+<script src="libs/rglwidgetClass-0.110.2/pieces.src.js"></script>
+<script src="libs/rglwidgetClass-0.110.2/draw.src.js"></script>
+<script src="libs/rglwidgetClass-0.110.2/controls.src.js"></script>
+<script src="libs/rglwidgetClass-0.110.2/selection.src.js"></script>
+<script src="libs/rglwidgetClass-0.110.2/rglTimer.src.js"></script>
+<script src="libs/rglwidgetClass-0.110.2/pretty.src.js"></script>
+<script src="libs/rglwidgetClass-0.110.2/axes.src.js"></script>
+<script src="libs/rglwidgetClass-0.110.2/animation.src.js"></script>
+<!--html_preserve--><script type = "text/plain" id = "rgl-vertex-shader">
+#line 2 1
+// File 1 is the vertex shader
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+#endif
+
+attribute vec3 aPos;
+attribute vec4 aCol;
+uniform mat4 mvMatrix;
+uniform mat4 prMatrix;
+varying vec4 vCol;
+varying vec4 vPosition;
+
+#ifdef NEEDS_VNORMAL
+attribute vec3 aNorm;
+uniform mat4 normMatrix;
+varying vec4 vNormal;
+#endif
+
+#if defined(HAS_TEXTURE) || defined (IS_TEXT)
+attribute vec2 aTexcoord;
+varying vec2 vTexcoord;
+#endif
+
+#ifdef FIXED_SIZE
+uniform vec3 textScale;
+#endif
+
+#ifdef FIXED_QUADS
+attribute vec3 aOfs;
+#endif
+
+#ifdef IS_TWOSIDED
+#ifdef HAS_NORMALS
+varying float normz;
+uniform mat4 invPrMatrix;
+#else
+attribute vec3 aPos1;
+attribute vec3 aPos2;
+varying float normz;
+#endif
+#endif // IS_TWOSIDED
+
+#ifdef FAT_LINES
+attribute vec3 aNext;
+attribute vec2 aPoint;
+varying vec2 vPoint;
+varying float vLength;
+uniform float uAspect;
+uniform float uLwd;
+#endif
+
+
+void main(void) {
+  
+#ifndef IS_BRUSH
+#if defined(NCLIPPLANES) || !defined(FIXED_QUADS) || defined(HAS_FOG)
+  vPosition = mvMatrix * vec4(aPos, 1.);
+#endif
+  
+#ifndef FIXED_QUADS
+  gl_Position = prMatrix * vPosition;
+#endif
+#endif // !IS_BRUSH
+  
+#ifdef IS_POINTS
+  gl_PointSize = POINTSIZE;
+#endif
+  
+  vCol = aCol;
+  
+#ifdef NEEDS_VNORMAL
+  vNormal = normMatrix * vec4(-aNorm, dot(aNorm, aPos));
+#endif
+  
+#ifdef IS_TWOSIDED
+#ifdef HAS_NORMALS
+  /* normz should be calculated *after* projection */
+  normz = (invPrMatrix*vNormal).z;
+#else
+  vec4 pos1 = prMatrix*(mvMatrix*vec4(aPos1, 1.));
+  pos1 = pos1/pos1.w - gl_Position/gl_Position.w;
+  vec4 pos2 = prMatrix*(mvMatrix*vec4(aPos2, 1.));
+  pos2 = pos2/pos2.w - gl_Position/gl_Position.w;
+  normz = pos1.x*pos2.y - pos1.y*pos2.x;
+#endif
+#endif // IS_TWOSIDED
+  
+#ifdef NEEDS_VNORMAL
+  vNormal = vec4(normalize(vNormal.xyz/vNormal.w), 1);
+#endif
+  
+#if defined(HAS_TEXTURE) || defined(IS_TEXT)
+  vTexcoord = aTexcoord;
+#endif
+  
+#if defined(FIXED_SIZE) && !defined(ROTATING)
+  vec4 pos = prMatrix * mvMatrix * vec4(aPos, 1.);
+  pos = pos/pos.w;
+  gl_Position = pos + vec4(aOfs*textScale, 0.);
+#endif
+  
+#if defined(IS_SPRITES) && !defined(FIXED_SIZE)
+  vec4 pos = mvMatrix * vec4(aPos, 1.);
+  pos = pos/pos.w + vec4(aOfs,  0.);
+  gl_Position = prMatrix*pos;
+#endif
+  
+#ifdef FAT_LINES
+  /* This code was inspired by Matt Deslauriers' code in 
+   https://mattdesl.svbtle.com/drawing-lines-is-hard */
+  vec2 aspectVec = vec2(uAspect, 1.0);
+  mat4 projViewModel = prMatrix * mvMatrix;
+  vec4 currentProjected = projViewModel * vec4(aPos, 1.0);
+  currentProjected = currentProjected/currentProjected.w;
+  vec4 nextProjected = projViewModel * vec4(aNext, 1.0);
+  vec2 currentScreen = currentProjected.xy * aspectVec;
+  vec2 nextScreen = (nextProjected.xy / nextProjected.w) * aspectVec;
+  float len = uLwd;
+  vec2 dir = vec2(1.0, 0.0);
+  vPoint = aPoint;
+  vLength = length(nextScreen - currentScreen)/2.0;
+  vLength = vLength/(vLength + len);
+  if (vLength > 0.0) {
+    dir = normalize(nextScreen - currentScreen);
+  }
+  vec2 normal = vec2(-dir.y, dir.x);
+  dir.x /= uAspect;
+  normal.x /= uAspect;
+  vec4 offset = vec4(len*(normal*aPoint.x*aPoint.y - dir), 0.0, 0.0);
+  gl_Position = currentProjected + offset;
+#endif
+  
+#ifdef IS_BRUSH
+  gl_Position = vec4(aPos, 1.);
+#endif
+}
+</script>
+<script type = "text/plain" id = "rgl-fragment-shader">
+#line 2 2
+// File 2 is the fragment shader
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+#endif
+varying vec4 vCol; // carries alpha
+varying vec4 vPosition;
+#if defined(HAS_TEXTURE) || defined (IS_TEXT)
+varying vec2 vTexcoord;
+uniform sampler2D uSampler;
+#endif
+
+#ifdef HAS_FOG
+uniform int uFogMode;
+uniform vec3 uFogColor;
+uniform vec4 uFogParms;
+#endif
+
+#if defined(IS_LIT) && !defined(FIXED_QUADS)
+varying vec4 vNormal;
+#endif
+
+#if NCLIPPLANES > 0
+uniform vec4 vClipplane[NCLIPPLANES];
+#endif
+
+#if NLIGHTS > 0
+uniform mat4 mvMatrix;
+#endif
+
+#ifdef IS_LIT
+uniform vec3 emission;
+uniform float shininess;
+#if NLIGHTS > 0
+uniform vec3 ambient[NLIGHTS];
+uniform vec3 specular[NLIGHTS]; // light*material
+uniform vec3 diffuse[NLIGHTS];
+uniform vec3 lightDir[NLIGHTS];
+uniform bool viewpoint[NLIGHTS];
+uniform bool finite[NLIGHTS];
+#endif
+#endif // IS_LIT
+
+#ifdef IS_TWOSIDED
+uniform bool front;
+varying float normz;
+#endif
+
+#ifdef FAT_LINES
+varying vec2 vPoint;
+varying float vLength;
+#endif
+
+void main(void) {
+  vec4 fragColor;
+#ifdef FAT_LINES
+  vec2 point = vPoint;
+  bool neg = point.y < 0.0;
+  point.y = neg ? (point.y + vLength)/(1.0 - vLength) :
+                 -(point.y - vLength)/(1.0 - vLength);
+#if defined(IS_TRANSPARENT) && defined(IS_LINESTRIP)
+  if (neg && length(point) <= 1.0) discard;
+#endif
+  point.y = min(point.y, 0.0);
+  if (length(point) > 1.0) discard;
+#endif // FAT_LINES
+  
+#ifdef ROUND_POINTS
+  vec2 coord = gl_PointCoord - vec2(0.5);
+  if (length(coord) > 0.5) discard;
+#endif
+  
+#if NCLIPPLANES > 0
+  for (int i = 0; i < NCLIPPLANES; i++)
+    if (dot(vPosition, vClipplane[i]) < 0.0) discard;
+#endif
+    
+#ifdef FIXED_QUADS
+    vec3 n = vec3(0., 0., 1.);
+#elif defined(IS_LIT)
+    vec3 n = normalize(vNormal.xyz);
+#endif
+    
+#ifdef IS_TWOSIDED
+    if ((normz <= 0.) != front) discard;
+#endif
+    
+#ifdef IS_LIT
+    vec3 eye = normalize(-vPosition.xyz/vPosition.w);
+    vec3 lightdir;
+    vec4 colDiff;
+    vec3 halfVec;
+    vec4 lighteffect = vec4(emission, 0.);
+    vec3 col;
+    float nDotL;
+#ifdef FIXED_QUADS
+    n = -faceforward(n, n, eye);
+#endif
+    
+#if NLIGHTS > 0
+    for (int i=0;i<NLIGHTS;i++) {
+      colDiff = vec4(vCol.rgb * diffuse[i], vCol.a);
+      lightdir = lightDir[i];
+      if (!viewpoint[i])
+        lightdir = (mvMatrix * vec4(lightdir, 1.)).xyz;
+      if (!finite[i]) {
+        halfVec = normalize(lightdir + eye);
+      } else {
+        lightdir = normalize(lightdir - vPosition.xyz/vPosition.w);
+        halfVec = normalize(lightdir + eye);
+      }
+      col = ambient[i];
+      nDotL = dot(n, lightdir);
+      col = col + max(nDotL, 0.) * colDiff.rgb;
+      col = col + pow(max(dot(halfVec, n), 0.), shininess) * specular[i];
+      lighteffect = lighteffect + vec4(col, colDiff.a);
+    }
+#endif
+    
+#else // not IS_LIT
+    vec4 colDiff = vCol;
+    vec4 lighteffect = colDiff;
+#endif
+    
+#ifdef IS_TEXT
+    vec4 textureColor = lighteffect*texture2D(uSampler, vTexcoord);
+#endif
+    
+#ifdef HAS_TEXTURE
+#ifdef TEXTURE_rgb
+    vec4 textureColor = lighteffect*vec4(texture2D(uSampler, vTexcoord).rgb, 1.);
+#endif
+    
+#ifdef TEXTURE_rgba
+    vec4 textureColor = lighteffect*texture2D(uSampler, vTexcoord);
+#endif
+    
+#ifdef TEXTURE_alpha
+    vec4 textureColor = texture2D(uSampler, vTexcoord);
+    float luminance = dot(vec3(1.,1.,1.), textureColor.rgb)/3.;
+    textureColor =  vec4(lighteffect.rgb, lighteffect.a*luminance);
+#endif
+    
+#ifdef TEXTURE_luminance
+    vec4 textureColor = vec4(lighteffect.rgb*dot(texture2D(uSampler, vTexcoord).rgb, vec3(1.,1.,1.))/3., lighteffect.a);
+#endif
+    
+#ifdef TEXTURE_luminance_alpha
+    vec4 textureColor = texture2D(uSampler, vTexcoord);
+    float luminance = dot(vec3(1.,1.,1.),textureColor.rgb)/3.;
+    textureColor = vec4(lighteffect.rgb*luminance, lighteffect.a*textureColor.a);
+#endif
+    
+    fragColor = textureColor;
+
+#elif defined(IS_TEXT)
+    if (textureColor.a < 0.1)
+      discard;
+    else
+      fragColor = textureColor;
+#else
+    fragColor = lighteffect;
+#endif // HAS_TEXTURE
+    
+#ifdef HAS_FOG
+    // uFogParms elements: x = near, y = far, z = fogscale, w = (1-sin(FOV/2))/(1+sin(FOV/2))
+    // In Exp and Exp2: use density = density/far
+    // fogF will be the proportion of fog
+    // Initialize it to the linear value
+    float fogF;
+    if (uFogMode > 0) {
+      fogF = (uFogParms.y - vPosition.z/vPosition.w)/(uFogParms.y - uFogParms.x);
+      if (uFogMode > 1)
+        fogF = mix(uFogParms.w, 1.0, fogF);
+      fogF = fogF*uFogParms.z;
+      if (uFogMode == 2)
+        fogF = 1.0 - exp(-fogF);
+      // Docs are wrong: use (density*c)^2, not density*c^2
+      // https://gitlab.freedesktop.org/mesa/mesa/-/blob/master/src/mesa/swrast/s_fog.c#L58
+      else if (uFogMode == 3)
+        fogF = 1.0 - exp(-fogF*fogF);
+      fogF = clamp(fogF, 0.0, 1.0);
+      gl_FragColor = vec4(mix(fragColor.rgb, uFogColor, fogF), fragColor.a);
+    } else gl_FragColor = fragColor;
+#else
+    gl_FragColor = fragColor;
+#endif // HAS_FOG
+    
+}
+</script><!--/html_preserve-->
+<script src="libs/CanvasMatrix4-0.110.2/CanvasMatrix.src.js"></script>
+<script src="libs/font-awesome-5.13.0/js/script.js"></script>
+
+
+<style type="text/css">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+</head>
+
+<body>
+
+
+
+  <div class="book without-animation with-summary font-size-2 font-family-1" data-basepath=".">
+
+    <div class="book-summary">
+      <nav role="navigation">
+
+<ul class="summary">
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i>Introduction</a></li>
+<li class="chapter" data-level="1" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html"><i class="fa fa-check"></i><b>1</b> The general linear model (GLM)</a>
+<ul>
+<li class="chapter" data-level="1.1" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#data"><i class="fa fa-check"></i><b>1.1</b> Data</a></li>
+<li class="chapter" data-level="1.2" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#fitting-a-glm"><i class="fa fa-check"></i><b>1.2</b> Fitting a GLM</a>
+<ul>
+<li class="chapter" data-level="1.2.1" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#predicted-values"><i class="fa fa-check"></i><b>1.2.1</b> Predicted values</a></li>
+<li class="chapter" data-level="1.2.2" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#residuals"><i class="fa fa-check"></i><b>1.2.2</b> Residuals</a></li>
+</ul></li>
+<li class="chapter" data-level="1.3" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#inference"><i class="fa fa-check"></i><b>1.3</b> Inference on the model coefficients</a>
+<ul>
+<li class="chapter" data-level="1.3.1" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#CIC"><i class="fa fa-check"></i><b>1.3.1</b> Confidence intervals (CI) for the model coefficients</a></li>
+<li class="chapter" data-level="1.3.2" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#CIP"><i class="fa fa-check"></i><b>1.3.2</b> Confidence intervals (CI) for the model predictions</a></li>
+<li class="chapter" data-level="1.3.3" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#tests-on-the-model-coefficients"><i class="fa fa-check"></i><b>1.3.3</b> Tests on the model coefficients</a></li>
+</ul></li>
+<li class="chapter" data-level="1.4" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#goodness-of-fit"><i class="fa fa-check"></i><b>1.4</b> Goodness-of-fit</a></li>
+<li class="chapter" data-level="1.5" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#assessing-assumptions"><i class="fa fa-check"></i><b>1.5</b> Assessing assumptions</a>
+<ul>
+<li class="chapter" data-level="1.5.1" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#fixing-non-linearity-polynomials"><i class="fa fa-check"></i><b>1.5.1</b> Fixing non-linearity: polynomials</a></li>
+<li class="chapter" data-level="1.5.2" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#fixing-heteroscedasticity"><i class="fa fa-check"></i><b>1.5.2</b> Fixing heteroscedasticity</a></li>
+<li class="chapter" data-level="1.5.3" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#influence-measures"><i class="fa fa-check"></i><b>1.5.3</b> Influence measures</a></li>
+</ul></li>
+<li class="chapter" data-level="1.6" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#probability-intervals-or-prediction-intervals"><i class="fa fa-check"></i><b>1.6</b> Probability intervals (or prediction intervals)</a></li>
+<li class="chapter" data-level="1.7" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#models-with-two-continuous-predictors"><i class="fa fa-check"></i><b>1.7</b> Models with two continuous predictors</a></li>
+<li class="chapter" data-level="1.8" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#comparing-models"><i class="fa fa-check"></i><b>1.8</b> Comparing models</a></li>
+<li class="chapter" data-level="1.9" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#confounding"><i class="fa fa-check"></i><b>1.9</b> Confounding</a></li>
+<li class="chapter" data-level="1.10" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#interaction-effect-modification"><i class="fa fa-check"></i><b>1.10</b> Interaction (effect modification)</a></li>
+<li class="chapter" data-level="" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#resources"><i class="fa fa-check"></i>Resources</a></li>
+<li class="chapter" data-level="" data-path="the-general-linear-model-glm.html"><a href="the-general-linear-model-glm.html#exercises"><i class="fa fa-check"></i>Exercises</a></li>
+</ul></li>
+<li class="chapter" data-level="2" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html"><i class="fa fa-check"></i><b>2</b> The logistic regression model (LRM)</a>
+<ul>
+<li class="chapter" data-level="2.1" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#logit-transformation"><i class="fa fa-check"></i><b>2.1</b> Logit transformation</a></li>
+<li class="chapter" data-level="2.2" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#fitting-a-lrm"><i class="fa fa-check"></i><b>2.2</b> Fitting a LRM</a></li>
+<li class="chapter" data-level="2.3" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#interpretation-of-model-coefficients"><i class="fa fa-check"></i><b>2.3</b> Interpretation of model coefficients</a></li>
+<li class="chapter" data-level="2.4" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#inference-on-the-model-coefficients"><i class="fa fa-check"></i><b>2.4</b> Inference on the model coefficients</a>
+<ul>
+<li class="chapter" data-level="2.4.1" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#confidence-intervals-ci-for-the-model-coefficients"><i class="fa fa-check"></i><b>2.4.1</b> Confidence intervals (CI) for the model coefficients</a></li>
+<li class="chapter" data-level="2.4.2" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#tests-on-the-model-coefficients-1"><i class="fa fa-check"></i><b>2.4.2</b> Tests on the model coefficients</a></li>
+</ul></li>
+<li class="chapter" data-level="2.5" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#assessment-of-fit"><i class="fa fa-check"></i><b>2.5</b> Assessment of fit</a>
+<ul>
+<li class="chapter" data-level="2.5.1" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#deviance-likelihood-ratio-test-and-aic"><i class="fa fa-check"></i><b>2.5.1</b> Deviance, likelihood ratio test and AIC</a></li>
+<li class="chapter" data-level="2.5.2" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#hosmer-lemeshow-test"><i class="fa fa-check"></i><b>2.5.2</b> Hosmer-Lemeshow test</a></li>
+<li class="chapter" data-level="2.5.3" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#other-measures-of-fit"><i class="fa fa-check"></i><b>2.5.3</b> Other measures of fit</a></li>
+</ul></li>
+<li class="chapter" data-level="2.6" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#model-predictions-and-classification"><i class="fa fa-check"></i><b>2.6</b> Model predictions and classification</a>
+<ul>
+<li class="chapter" data-level="2.6.1" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#predictions-and-confusion-matrix"><i class="fa fa-check"></i><b>2.6.1</b> Predictions and confusion matrix</a></li>
+<li class="chapter" data-level="2.6.2" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#roc-curves-and-auc"><i class="fa fa-check"></i><b>2.6.2</b> ROC curves and AUC</a></li>
+</ul></li>
+<li class="chapter" data-level="2.7" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#comparing-models-1"><i class="fa fa-check"></i><b>2.7</b> Comparing models</a></li>
+<li class="chapter" data-level="2.8" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#confounding-1"><i class="fa fa-check"></i><b>2.8</b> Confounding</a></li>
+<li class="chapter" data-level="2.9" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#interaction-effect-modification-1"><i class="fa fa-check"></i><b>2.9</b> Interaction (effect modification)</a></li>
+<li class="chapter" data-level="2.10" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#model-diagnostics"><i class="fa fa-check"></i><b>2.10</b> Model diagnostics</a></li>
+<li class="chapter" data-level="" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#resources-1"><i class="fa fa-check"></i>Resources</a></li>
+<li class="chapter" data-level="" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#exercises-1"><i class="fa fa-check"></i>Exercises</a></li>
+</ul></li>
+<li class="chapter" data-level="3" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html"><i class="fa fa-check"></i><b>3</b> Survival analysis and Cox regression models</a>
+<ul>
+<li class="chapter" data-level="3.1" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#time-to-event-variables-t"><i class="fa fa-check"></i><b>3.1</b> Time to event variables (T)</a></li>
+<li class="chapter" data-level="3.2" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#censoring"><i class="fa fa-check"></i><b>3.2</b> Censoring</a></li>
+<li class="chapter" data-level="3.3" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#survival-objects-in-r"><i class="fa fa-check"></i><b>3.3</b> Survival objects in R</a></li>
+<li class="chapter" data-level="3.4" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#survival-and-related-functions"><i class="fa fa-check"></i><b>3.4</b> Survival and related functions</a></li>
+<li class="chapter" data-level="3.5" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#estimating-the-survival-function"><i class="fa fa-check"></i><b>3.5</b> Estimating the survival function</a>
+<ul>
+<li class="chapter" data-level="3.5.1" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#quantiles-of-the-survival-time"><i class="fa fa-check"></i><b>3.5.1</b> Quantiles of the survival time</a></li>
+<li class="chapter" data-level="3.5.2" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#plotting-the-estimated-survival-function"><i class="fa fa-check"></i><b>3.5.2</b> Plotting the estimated survival function</a></li>
+</ul></li>
+<li class="chapter" data-level="3.6" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#estimating-the-survival-function-in-independent-samples"><i class="fa fa-check"></i><b>3.6</b> Estimating the survival function in independent samples</a></li>
+<li class="chapter" data-level="3.7" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#comparing-the-survival-function-in-independent-samples"><i class="fa fa-check"></i><b>3.7</b> Comparing the survival function in independent samples</a></li>
+<li class="chapter" data-level="3.8" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#the-cox-model"><i class="fa fa-check"></i><b>3.8</b> The Cox model</a></li>
+<li class="chapter" data-level="3.9" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#fitting-a-cox-model"><i class="fa fa-check"></i><b>3.9</b> Fitting a Cox model</a></li>
+<li class="chapter" data-level="3.10" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#assessing-the-proportional-hazards-ph-assumption"><i class="fa fa-check"></i><b>3.10</b> Assessing the proportional hazards (PH) assumption</a></li>
+<li class="chapter" data-level="" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#resources-2"><i class="fa fa-check"></i>Resources</a></li>
+<li class="chapter" data-level="" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#exercises-2"><i class="fa fa-check"></i>Exercises</a></li>
+</ul></li>
+</ul>
+
+      </nav>
+    </div>
+
+    <div class="book-body">
+      <div class="body-inner">
+        <div class="book-header" role="navigation">
+          <h1>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">Statistical Modeling for Clinical Researchers</a>
+          </h1>
+        </div>
+
+        <div class="page-wrapper" tabindex="-1" role="main">
+          <div class="page-inner">
+
+            <section class="normal" id="section-">
+<div id="survival-analysis-and-cox-regression-models" class="section level1 hasAnchor" number="3">
+<h1><span class="header-section-number">3</span> Survival analysis and Cox regression models<a href="survival-analysis-and-cox-regression-models.html#survival-analysis-and-cox-regression-models" class="anchor-section" aria-label="Anchor link to header"></a></h1>
+<p>In this unit, we introduce several analysis methods that are collectively referred to as <em>survival analysis</em>. As the name suggests, these methods are used to analyse survival times, but not only. In fact, they can be used to analyse the <em>time to an event</em> of interest, regardless of what this event is (death or other).</p>
+<p>Common goals of survival analysis are:</p>
+<ul>
+<li><p>To estimate the <em>survival function</em>, which describes the probability of survival as a function of time.</p></li>
+<li><p>To compare survival functions among several populations of individuals (e.g., males vs females, treated vs non-treated, etc.)</p></li>
+<li><p>To model survival as a function of potential explanatory variables (like age, gender, prognostic markers, treatment received).</p></li>
+</ul>
+<p>In the following sections we present methods to accomplish all these objectives, but first we must introduce some theoretical concepts on which these methods are based. Let’s start by clarifying what is the type of variables we can analyse with these methods.</p>
+<div id="time-to-event-variables-t" class="section level2 hasAnchor" number="3.1">
+<h2><span class="header-section-number">3.1</span> Time to event variables (T)<a href="survival-analysis-and-cox-regression-models.html#time-to-event-variables-t" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>By survival time we mean the time from an initial point (such as the diagnosis of a malignancy) to death. Therefore, survival times are time intevals defined by a starting point and the event “death”. While survival times are measured in many studies on life threatening diseases such as cancer, other time intervals may be of interest in both cancer and many other research areas. Here are some examples:</p>
+<ul>
+<li><p>the time from surgery to disease progression in cancer patients.</p></li>
+<li><p>the time from transplant to graft rejection in transplant patients.</p></li>
+<li><p>the time from atrioventricular node ablation to arrhythmia recurrence in patients with atrial fibrillation.</p></li>
+<li><p>the time to pain relief after taking an analgesic drug.</p></li>
+</ul>
+<p>All of these examples assess the time to an <em>event</em> (whether disease progression, graft rejection, arrhythmia recurrence, or pain relief). We refer to these as <em>time-to-event</em> variables, and usually denote them by T. Note, however, that an unambiguous definition of a time interval requires not only specifying the event of interest, but also the starting point from which we begin counting time.</p>
+<p>While time to event variables are continuous in nature, their analysis presents some challenges that do not affect other types of continuous variables (like the weigh of a newborn, or the blood concentration of cholesterol). Tipically, time to event variables tend to show a markedly asymmetric distribution, and some cases may show very long times. Because of this, it is impractical, if not impossible, to observe the <em>complete</em> time interval for some cases, since we would have to wait a long time for the event to appear in all of them. This generates a problem known as censoring, which we discuss in the next section.</p>
+</div>
+<div id="censoring" class="section level2 hasAnchor" number="3.2">
+<h2><span class="header-section-number">3.2</span> Censoring<a href="survival-analysis-and-cox-regression-models.html#censoring" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>Consider a hypothetical survival study that recruits patients starting from 01 January 2015. Recruitment is completed two years later (01 January 2017) and then, patients are followed for five additional years untill study finalisation on 01 january 2023. Figure <a href="survival-analysis-and-cox-regression-models.html#fig:3-censoring">3.1</a> illustrates the enrollment and follow-up (horizontal lines) of patients up to death (dots) or study termination. Dashed lines indicate study start, end of recruitment and end of study.</p>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:3-censoring"></span>
+<img src="_main_files/figure-html/3-censoring-1.png" alt="Chronolgy of enrollment and follow-up of patients" width="768" />
+<p class="caption">
+Figure 3.1: Chronolgy of enrollment and follow-up of patients
+</p>
+</div>
+<p>Most of the 15 patients died at some point, so that we know what is the survival time for them . However, there are four patients that did not die during the follow-up: patients 9, 11 and 13 were alive by the end of study, and patient 8 was lost to follow up after about 4 years (1460 days). These are called <em>censored observations</em> beacuse we only observed part of their survial time, but not all of it. While we cannot know what is the actual survial time for these patients, we know it is <em>greater</em> than the time we followed them. For instance, we know that the survival time for patient 8 is <em>greater</em> than 4 years.</p>
+<p>Censored observations are commonplace in time to event studies. While it may not be obvious how to deal with them in the analysis, it is important to understand that we cannot simply ignore censoring. On the one hand, taking the observed follow-up time as the survival time would underestimate it. On the other hand, removing censored observations from the analysis on the grounds that we ignore the actual survival time would produce an even greater underestimation, since these cases are the ones with the longest survival.</p>
+<p>Censoring can happen in different forms when measuring time to an event, and it is usual to distinguish:</p>
+<ul>
+<li><p><em>Right censoring</em>: this is the case when we know the starting point, but the follow-up is interrupted (for whatever the reason) before the event is observed. This is the case affecting the hypotthetical study of figure <a href="survival-analysis-and-cox-regression-models.html#fig:3-censoring">3.1</a> and most survival studies, or more generally, most time to event studies.</p></li>
+<li><p><em>Left censoring</em>: this is the case when we do not know the starting point, but a follow-up has been initiated after it, and has continued until the event is observed. This would be the case if we wanted to estimate the time of evolution of a disease until some complication (or death); since many chronic diseases are not diagnosed when they appear but some time thereafter, starting follow-up at the diagnostic date implies left-censoring of the true time of evolution of the disease.</p></li>
+<li><p><em>Interval censoring</em>: this is the case when we know the starting point, but patients are monitored at discrete times rather than continuously (for instance, once a year), so that when the event is observed, we cannot know the exact date it appeared. For instance, if a patient does not show the event in the first three yearly controls but shows it at the fourth year control, we only know that the time to the event is some value between 3 and 4 years, but we ignore the precise value.</p></li>
+</ul>
+<p>The methods presented in this unit are appropriate to deal with right censoring only, but fortunately this is the most common type of censoring in clinical studies. Moreover, these methods assume that the censoring is <em>non-informative</em>, which means it is <em>not</em> related to the probability of occurrence of the event. Conversely, <em>informative censoring</em> refers to the case where the censoring <em>is</em> related to the probability of ocurrence of the event, and this may cause biased survival estimates.</p>
+</div>
+<div id="survival-objects-in-r" class="section level2 hasAnchor" number="3.3">
+<h2><span class="header-section-number">3.3</span> Survival objects in R<a href="survival-analysis-and-cox-regression-models.html#survival-objects-in-r" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>Figure <a href="survival-analysis-and-cox-regression-models.html#fig:3-fup-and-data">3.2</a> shows the follow-up and events for the same patients of figure <a href="survival-analysis-and-cox-regression-models.html#fig:3-censoring">3.1</a>, but now sorted by follow-up length, as well as the dataframe containing the relevant data. Note that two variables are needed: one for the duration of follow-up (<code>days</code>), and another one for the patient’s status at the end of follow-up (<code>event</code>), so that events can be distinguished from censored observations. In this case, the event has been coded as <code>1</code>, while <code>0</code> indicates a censored observation.</p>
+<p><br />
+</p>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:3-fup-and-data"></span>
+<img src="_main_files/figure-html/3-fup-and-data-1.png" alt="Length of follow-up and data" width="1152" />
+<p class="caption">
+Figure 3.2: Length of follow-up and data
+</p>
+</div>
+<p><br />
+</p>
+<p>The <code>survival</code> package has a function <code>Surv()</code> (note the capital S in <code>Surv</code> !) allowing to combine the duration of follow-up (passed as first argument) and the event indicator (second argument) into a single <em>survival object</em>. Assuming the dataframe shown in <a href="survival-analysis-and-cox-regression-models.html#fig:3-fup-and-data">3.2</a> has name <code>d</code>, the following will produce a survival object:</p>
+<div class="sourceCode" id="cb147"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb147-1"><a href="survival-analysis-and-cox-regression-models.html#cb147-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(survival)</span>
+<span id="cb147-2"><a href="survival-analysis-and-cox-regression-models.html#cb147-2" aria-hidden="true" tabindex="-1"></a><span class="fu">Surv</span>(d<span class="sc">$</span>days, d<span class="sc">$</span>event)</span></code></pre></div>
+<pre><code> [1]  274   549   611  1066  1185  1188  1400  1472+ 1736  1887  1918  2253 
+[13] 2265+ 2419+ 2462+</code></pre>
+<p>The result looks much like a numeric vector of follow-up lengths, but it is not: censored observations have been suffixed with a plus sign (which is not possible in standard numeric vectors). As we will see below, survival objects are what we need to analyze survival times.</p>
+<p>Note that the <code>Surv()</code> function expects the event indicator to be coded in any of the following ways:</p>
+<ul>
+<li><p><code>TRUE/FALSE</code>, where <code>TRUE</code> is event and <code>FALSE</code> is censored, or</p></li>
+<li><p><code>1/0</code>, where <code>1</code> is event and <code>0</code> is censored; or</p></li>
+<li><p><code>2/1</code> where <code>2</code> is event and <code>1</code> is censored.</p></li>
+</ul>
+<p>When creating a survival object it is very important to ensure that the event indicator is coded in one of these ways. In dataframe <code>d</code>, the event indicator <code>d$event</code> is coded as the second case above (<code>1/0</code>, where <code>1</code> is event and <code>0</code> is censored), and therefore the survival object created in the previous script is correct. Equivalently, we could have defined the survival object as:</p>
+<div class="sourceCode" id="cb149"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb149-1"><a href="survival-analysis-and-cox-regression-models.html#cb149-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Surv</span>(d<span class="sc">$</span>days, d<span class="sc">$</span>event <span class="sc">==</span> <span class="dv">1</span>)</span></code></pre></div>
+<pre><code> [1]  274   549   611  1066  1185  1188  1400  1472+ 1736  1887  1918  2253 
+[13] 2265+ 2419+ 2462+</code></pre>
+<p>Note that in this case we are using the first coding above, since the comparison <code>d$event == 1</code> will produce a logical vector, with <code>TRUE</code> for cases with event (<code>1</code>), and <code>FALSE</code> for non-events (<code>0</code>). This syntax has the advantages of making explicit the value of the event variable that corresponds to event cases.</p>
+</div>
+<div id="survival-and-related-functions" class="section level2 hasAnchor" number="3.4">
+<h2><span class="header-section-number">3.4</span> Survival and related functions<a href="survival-analysis-and-cox-regression-models.html#survival-and-related-functions" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>For a survival (or time to event) variable <span class="math inline">\(T\)</span> taking values <span class="math inline">\(t_1, t_2, ..., t_n\)</span> in a sample of <span class="math inline">\(n\)</span> individuals, the <em>survival function</em> is defined as the probability that an individual survives (or remains event-free beyond) time <span class="math inline">\(t\)</span>. Formally,</p>
+<p><span class="math display">\[S(t) = P(T&gt;t)\]</span><br />
+</p>
+<p>It is assumed that <span class="math inline">\(S(0) = 1\)</span> and <span class="math inline">\(S(\infty) = 0\)</span>. The first of these assumptions means that all individuals are initially (<span class="math inline">\(t=0\)</span>) alive (or event-free), and the second one means that no individual survives forever: all individuals will eventualy die (or experience the event) (<span class="math inline">\(t=\infty\)</span>). Because once an individual dies (or experiences the event) he or she will never resurrect (or be event-free), <span class="math inline">\(S(t)\)</span> is a <em>non-increasing</em> function: it can only decrease with time or remain stable, but never increase.</p>
+<p>There are some important functions that are closely related to the survival function. First, the <em>cumulative distribution</em> function, is just the complementary of the survival function:</p>
+<p><span class="math display">\[F(t) = 1 - S(t)\]</span></p>
+<p>This functions gives the probability of presenting the event at time <span class="math inline">\(t\)</span> or before, and this is why it is sometimes calles the <em>cumulative events</em> function.</p>
+<p>Another function related to the survival function is the <em>hazards function</em>, which can be defined as the differential of the log of <span class="math inline">\(S(t)\)</span> with respect to <span class="math inline">\(t\)</span>, with the sign changed:</p>
+<p><span class="math display">\[h(t) = - \frac{d \;log \;S(t)}{dt}\]</span>
+Since this function involves a differential of (the log of) <span class="math inline">\(S(t)\)</span>, it describes the <em>rate</em> at which (the log of) <span class="math inline">\(S(t)\)</span> changes, and is interpreted as the <em>instantaneous</em> death or event rate. The hazard function <em>is not</em> a probability, but an instantaneous rate.</p>
+<p>Last, the <em>cumulative hazard</em> function, is the log of the survival function with changed sign:</p>
+<p><span class="math display">\[H(t) = - log \ S(t)\]</span>
+This function gives accumulated risk until time <span class="math inline">\(t\)</span>, but it <em>is not</em> a probability, and has no easy interpretation.</p>
+</div>
+<div id="estimating-the-survival-function" class="section level2 hasAnchor" number="3.5">
+<h2><span class="header-section-number">3.5</span> Estimating the survival function<a href="survival-analysis-and-cox-regression-models.html#estimating-the-survival-function" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>We previously discussed the importance of taking censoring into account to estimate survival probabilities. Here we present a method to estimate the survival function in the presence of censoring, known as the Kaplan-Meier (KM) method.</p>
+<p>The KM estimate of the survival function at time <span class="math inline">\(t_i\)</span> is:</p>
+<p><span class="math display">\[S(t_i) = S(t_{i-1}) \left( 1-\frac{d_i}{n_i} \right)\]</span>
+where</p>
+<p><span class="math inline">\(d_i\)</span> is the number of events observed at time <span class="math inline">\(t_i\)</span>, and
+<span class="math inline">\(n_i\)</span> is the number of individuals at risk inmediately before time <span class="math inline">\(t_i\)</span>.</p>
+<p>This estimate is computed for all event times <span class="math inline">\(t\)</span> observed in a sample, thus obtaining an empirical estimate of the survival function.</p>
+<p>To get the KM estimates from a sample of survival times, we first use function <code>survfit()</code> from the <code>survival</code> package: the first argument to this function is a formula, with a survival object produced with <code>Surv()</code> before the tilde, and 1 after the tilde; the dataframe containing the variables is passed as second argument. We save the resulting object (as <code>fit</code>) for later use, and then summarise it:</p>
+<div class="sourceCode" id="cb151"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb151-1"><a href="survival-analysis-and-cox-regression-models.html#cb151-1" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">survfit</span>(<span class="fu">Surv</span>(days, event) <span class="sc">~</span> <span class="dv">1</span>, d)</span>
+<span id="cb151-2"><a href="survival-analysis-and-cox-regression-models.html#cb151-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(fit)</span></code></pre></div>
+<pre><code>Call: survfit(formula = Surv(days, event) ~ 1, data = d)
+
+ time n.risk n.event survival std.err lower 95% CI upper 95% CI
+  274     15       1    0.933  0.0644        0.815        1.000
+  549     14       1    0.867  0.0878        0.711        1.000
+  611     13       1    0.800  0.1033        0.621        1.000
+ 1066     12       1    0.733  0.1142        0.540        0.995
+ 1185     11       1    0.667  0.1217        0.466        0.953
+ 1188     10       1    0.600  0.1265        0.397        0.907
+ 1400      9       1    0.533  0.1288        0.332        0.856
+ 1736      7       1    0.457  0.1310        0.261        0.802
+ 1887      6       1    0.381  0.1295        0.196        0.742
+ 1918      5       1    0.305  0.1240        0.137        0.676
+ 2253      4       1    0.229  0.1140        0.086        0.608</code></pre>
+<p>The output shows the times at which events were observed, and for each <code>time</code>, the number of cases at risk (<code>n.risk</code>), the number of events observed at this time (<code>n.events</code>), the KM estimate of the <code>survival</code> probability, its standard error and the lower and upper bounds of its 95% CI. We can easily verify that the survival estimates provided were computed using the KM estimator presented above:</p>
+<ul>
+<li>For <span class="math inline">\(t=0: \qquad \qquad S(0) = 1\)</span></li>
+<li>For <span class="math inline">\(t=274 \qquad \qquad S(274) = 1 \times \left(1-\frac{1}{15} \right) = 1 \times 0.933 = 0.933\)</span></li>
+<li>For <span class="math inline">\(t=549 \qquad \qquad S(549) = 0.933 \times \left(1-\frac{1}{14} \right) = 0.933 \times 0.929 = 0.867\)</span></li>
+<li>… and so on.</li>
+</ul>
+<p>Note that a survival probability is estimated for each time at which an event was observed, but not for times corresponding to censored cases. Note also that censored observations are removed from the set at risk. In the first 7 rows of the results above (times 274 to 1400), the number at risk decreases one at a time because all these patients presented the event and no observations were censored at before time 1400. However, patient 8 was censored after 1472 days of follow-up, so that it is no longer at risk to estimate survival at the next observed event, which occurred at 1736 days. For this reason, the number of patients at risk in row 1736 is not 8 but 7.</p>
+<p>The summary function can be used as well to obtain the survival estimates at specific times, by passing these times (as a numeric vector) in the optional <code>times</code> argument when calling <code>summary()</code>. Here we get the survival for the first five years:</p>
+<div class="sourceCode" id="cb153"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb153-1"><a href="survival-analysis-and-cox-regression-models.html#cb153-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(fit, <span class="at">times =</span> <span class="dv">365</span> <span class="sc">*</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>)</span></code></pre></div>
+<pre><code>Call: survfit(formula = Surv(days, event) ~ 1, data = d)
+
+ time n.risk n.event survival std.err lower 95% CI upper 95% CI
+  365     14       1    0.933  0.0644        0.815        1.000
+  730     12       2    0.800  0.1033        0.621        1.000
+ 1095     11       1    0.733  0.1142        0.540        0.995
+ 1460      8       3    0.533  0.1288        0.332        0.856
+ 1825      6       1    0.457  0.1310        0.261        0.802</code></pre>
+<div id="quantiles-of-the-survival-time" class="section level3 hasAnchor" number="3.5.1">
+<h3><span class="header-section-number">3.5.1</span> Quantiles of the survival time<a href="survival-analysis-and-cox-regression-models.html#quantiles-of-the-survival-time" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<p>Once we have fitted a survival function with <code>survfit()</code> and saved the resulting object, we can use it for several purposes. For instance, printing this object will provide us with the estimated <em>median</em> survival time, that is, the time at which 50% of the sample has shown the event:</p>
+<div class="sourceCode" id="cb155"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb155-1"><a href="survival-analysis-and-cox-regression-models.html#cb155-1" aria-hidden="true" tabindex="-1"></a>fit</span></code></pre></div>
+<pre><code>Call: survfit(formula = Surv(days, event) ~ 1, data = d)
+
+      n events median 0.95LCL 0.95UCL
+[1,] 15     11   1736    1185      NA</code></pre>
+<p>We see that the median survial time is 1736 days (about one year and three quarters), and the lower limit of the 95% CI is 1185 (the upper limit cannot be estimated in this case, due to the limited dample size).</p>
+<p>We could also estimate the quartiles from the <code>fit</code> object:</p>
+<div class="sourceCode" id="cb157"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb157-1"><a href="survival-analysis-and-cox-regression-models.html#cb157-1" aria-hidden="true" tabindex="-1"></a><span class="fu">quantile</span>(fit)</span></code></pre></div>
+<pre><code>$quantile
+  25   50   75 
+1066 1736 2253 
+
+$lower
+  25   50   75 
+ 549 1185 1887 
+
+$upper
+  25   50   75 
+1887   NA   NA </code></pre>
+<p>The output shows the estimates of the three quartlies as well as the lower and upper bounds of their 95% CI. For instance, the 1st quartile (or 25th percentile) is 1066 days, with 95% CI ranging from 549 to 1887 days. The upper bound of the 95% CI for the median and 3rd quartile could not be estimated due to the limited sample size and the censoring of some observations.</p>
+<p>Other quantiles could be obtained by specifying their probabilities in argument <code>probs</code>. Here we estimate the 10th and 70th percentiles of the survival times:</p>
+<div class="sourceCode" id="cb159"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb159-1"><a href="survival-analysis-and-cox-regression-models.html#cb159-1" aria-hidden="true" tabindex="-1"></a><span class="fu">quantile</span>(fit, <span class="at">probs =</span> <span class="fu">c</span>(.<span class="dv">1</span>, .<span class="dv">7</span>))</span></code></pre></div>
+<pre><code>$quantile
+  10   70 
+ 549 2253 
+
+$lower
+  10   70 
+ 274 1736 
+
+$upper
+  10   70 
+1400   NA </code></pre>
+</div>
+<div id="plotting-the-estimated-survival-function" class="section level3 hasAnchor" number="3.5.2">
+<h3><span class="header-section-number">3.5.2</span> Plotting the estimated survival function<a href="survival-analysis-and-cox-regression-models.html#plotting-the-estimated-survival-function" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<p>The KM survival function can be plotted using the <code>ggsurvplot()</code> function of package <code>survminer</code>. The only required argument to this function is the fitted object, but there are lots of optional arguments we can use to customize the plot (see <code>?ggsurvplot</code>).</p>
+<div class="sourceCode" id="cb161"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb161-1"><a href="survival-analysis-and-cox-regression-models.html#cb161-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(survminer)</span>
+<span id="cb161-2"><a href="survival-analysis-and-cox-regression-models.html#cb161-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsurvplot</span>(fit, <span class="at">xlab =</span> <span class="st">&quot;Days&quot;</span>, <span class="at">legend =</span> <span class="st">&quot;none&quot;</span>) </span></code></pre></div>
+<p><img src="_main_files/figure-html/3-lung-survplot-1.png" width="1056" style="display: block; margin: auto;" /></p>
+<p>In resulting plot, the estimated survival curve looks like a step function because the KM method provides survival estimates at discrete time points (follow-up times at which an event was observed). Censored observations are depicted along the survival line as <code>+</code> (unless we use option <code>censor=FALSE</code> in the function call). The colored band shows the 95% CI <em>for each KM survival estimate</em>, and therefore it is not a 95% CI for the whole survival function.</p>
+<p>As an alternative of plotting the survival function, we may want to plot the cumulative events function, whish is jus the complementary of the survival function, i.e., <span class="math inline">\(1-S(t)\)</span>. This can be done with option <code>fun = "event"</code> in <code>ggsurvplot()</code>:</p>
+<div class="sourceCode" id="cb162"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb162-1"><a href="survival-analysis-and-cox-regression-models.html#cb162-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsurvplot</span>(fit, <span class="at">xlab =</span> <span class="st">&quot;Days&quot;</span>, <span class="at">legend =</span> <span class="st">&quot;none&quot;</span>, <span class="at">fun =</span> <span class="st">&quot;event&quot;</span>)</span></code></pre></div>
+<p><img src="_main_files/figure-html/3-lung-eventplot-1.png" width="1056" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="estimating-the-survival-function-in-independent-samples" class="section level2 hasAnchor" number="3.6">
+<h2><span class="header-section-number">3.6</span> Estimating the survival function in independent samples<a href="survival-analysis-and-cox-regression-models.html#estimating-the-survival-function-in-independent-samples" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>A very common reasearch objective is to estimate the survival function in different groups of individuals. To illustrate how this can be done, we will use the <code>lung</code> dataset included in the <code>survival</code> package, containing data on the survival of 228 patients with advanced lung cancer from the North Central Cancer Treatment Group:</p>
+<div class="sourceCode" id="cb163"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb163-1"><a href="survival-analysis-and-cox-regression-models.html#cb163-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(lung)</span></code></pre></div>
+<pre><code>  inst time status age sex ph.ecog ph.karno pat.karno meal.cal wt.loss
+1    3  306      2  74   1       1       90       100     1175      NA
+2    3  455      2  68   1       0       90        90     1225      15
+3    3 1010      1  56   1       0       90        90       NA      15
+4    5  210      2  57   1       1       90        60     1150      11
+5    1  883      2  60   1       0      100        90       NA       0
+6   12 1022      1  74   1       1       50        80      513       0</code></pre>
+<p>In this dataset, <code>time</code> is the follow-up time in days, <code>status</code> is an indicator of censoring (<code>1=censored</code>, and <code>2=dead</code>), and <code>sex</code> is coded as <code>1=male</code> and <code>2=female</code> (see <code>?lung</code> for more details). Let’s define factor for <code>sex</code>:</p>
+<div class="sourceCode" id="cb165"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb165-1"><a href="survival-analysis-and-cox-regression-models.html#cb165-1" aria-hidden="true" tabindex="-1"></a>lung<span class="sc">$</span>sex <span class="ot">&lt;-</span> <span class="fu">factor</span>(lung<span class="sc">$</span>sex, <span class="at">levels =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>, <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;male&quot;</span>, <span class="st">&quot;female&quot;</span>))</span></code></pre></div>
+<p>Suppose we want to compare the survival function in males and females. Then, we need to estimate this function separately for each males and females. This can be done with <code>survfit()</code> but we need to specify the grouping variable <code>sex</code> in the formula, after the tilde. Here we save the result as <code>km</code> and then get the estimated survival times at one and two years:</p>
+<div class="sourceCode" id="cb166"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb166-1"><a href="survival-analysis-and-cox-regression-models.html#cb166-1" aria-hidden="true" tabindex="-1"></a>km <span class="ot">&lt;-</span> <span class="fu">survfit</span>(<span class="fu">Surv</span>(<span class="at">time =</span> time, <span class="at">event =</span> status) <span class="sc">~</span> sex, <span class="at">data =</span> lung)   </span>
+<span id="cb166-2"><a href="survival-analysis-and-cox-regression-models.html#cb166-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(km, <span class="at">times =</span> <span class="fu">c</span>(<span class="dv">365</span>, <span class="dv">730</span>))</span></code></pre></div>
+<pre><code>Call: survfit(formula = Surv(time = time, event = status) ~ sex, data = lung)
+
+                sex=male 
+ time n.risk n.event survival std.err lower 95% CI upper 95% CI
+  365     35      85   0.3361  0.0434        0.261        0.433
+  730      7      24   0.0781  0.0276        0.039        0.156
+
+                sex=female 
+ time n.risk n.event survival std.err lower 95% CI upper 95% CI
+  365     30      36    0.526  0.0597       0.4215        0.658
+  730      6      14    0.187  0.0621       0.0978        0.359</code></pre>
+<p>Now the output of <code>summary()</code> gives survival estimates for males and females separately. At both one and two years of follow-up, the survival estimates are higher for females than for males.</p>
+</div>
+<div id="comparing-the-survival-function-in-independent-samples" class="section level2 hasAnchor" number="3.7">
+<h2><span class="header-section-number">3.7</span> Comparing the survival function in independent samples<a href="survival-analysis-and-cox-regression-models.html#comparing-the-survival-function-in-independent-samples" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>The survival functions estimated in different groups of individuals can be compared with the <em>logrank test</em>. In this test, the following hypotheses are stated:</p>
+<p><span class="math display">\[H_0: \qquad S_1(t) = S_2(t)\]</span>
+<span class="math display">\[H_1: \qquad S_1(t) \ne S_2(t)\]</span>
+where <span class="math inline">\(S_1(t)\)</span> and <span class="math inline">\(S_2(t)\)</span> are the survival functions in populations 1 and 2, respectively (e.g., males and females).</p>
+<p>The logrank test can be produced with function <code>survdiff()</code>. The first argument to this function is a formula, with a survival object produced with <code>Surv()</code> before the tilde, and the grouping variable after the tilde; the dataframe containing the variables is passed as second argument. The following code produces a logrank test comparing the survival of males and females in the <code>lung</code> dataset:</p>
+<div class="sourceCode" id="cb168"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb168-1"><a href="survival-analysis-and-cox-regression-models.html#cb168-1" aria-hidden="true" tabindex="-1"></a><span class="fu">survdiff</span>(<span class="fu">Surv</span>(<span class="at">time =</span> time, <span class="at">event =</span> status) <span class="sc">~</span> sex, <span class="at">data =</span> lung)</span></code></pre></div>
+<pre><code>Call:
+survdiff(formula = Surv(time = time, event = status) ~ sex, data = lung)
+
+             N Observed Expected (O-E)^2/E (O-E)^2/V
+sex=male   138      112     91.6      4.55      10.3
+sex=female  90       53     73.4      5.68      10.3
+
+ Chisq= 10.3  on 1 degrees of freedom, p= 0.001 </code></pre>
+<p>The output shows, for each group, the number of cases (<code>N</code>), the number of events <code>Observed</code>, the number of events <code>Expected</code> under the null hypothesis, and two addition columns showing the computation of a chi-square statistic (which, in these case, it is called logrank statistic) that compares observed and expected frequencies. Finally, the logrank statistic (Chisq= 10.3) and the corresponding <em>p</em> value are given. A low <em>p</em> value provides evidence that the two populations compared do have a <em>different</em> survival function. Thus, in this case, because <code>p= 0.001</code> is lower than the usual 0.05 significance level, we reject the null hypothesis of equal survival functions in males an females, and conclude their survival functions are different.</p>
+<p>Conveniently, function <code>ggsurvplot()</code> allows to depict the estimated sirvival functions, as well as the result of the logrank test, using appropriate options (<code>pval = TRUE</code>, and <code>pval.method = TRUE</code>), as shown below:</p>
+<div class="sourceCode" id="cb170"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb170-1"><a href="survival-analysis-and-cox-regression-models.html#cb170-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsurvplot</span>(km, <span class="at">pval =</span> <span class="cn">TRUE</span>, <span class="at">pval.method =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<p><img src="_main_files/figure-html/3-plot-2-curves-1.png" width="1056" style="display: block; margin: auto;" /></p>
+<p>The logrank test is appropriate to compare survival curves under the following conditions:</p>
+<ul>
+<li><p>the curves are estimated in <em>independent groups</em>.</p></li>
+<li><p>the censoring pattern is similar in all groups compared.</p></li>
+<li><p>at any time, the instantaneous risk of the event in the populations compared are proportional; this is the so-called <em>proportional risk</em> assumption. n practice, we may loosely consider this assumption is reasonable if the estimated survival functions do not cross.</p></li>
+</ul>
+</div>
+<div id="the-cox-model" class="section level2 hasAnchor" number="3.8">
+<h2><span class="header-section-number">3.8</span> The Cox model<a href="survival-analysis-and-cox-regression-models.html#the-cox-model" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>Cox models are very common when it comes to model survival data. However, it is not the survival function which is directly modeled, but the closely related hazard function. In a <em>Cox model</em>, the hazard function is expressed as the product of a <em>baseline hazard</em> and the exponential of a linear predictor of explanatory variables (<span class="math inline">\(X_1, X_2, ..., X_p\)</span>) with no intercept:</p>
+<p><span class="math display" id="eq:cox">\[\begin{equation}
+h(t) \quad = \quad h_0(t) \quad e\ ^{\ \beta_1 X_1 + \ \beta_2 X_2 + ...+ \ \beta_k X_p} \quad = \quad  h_0(t) \quad e\ ^{\beta_1 X_1} \ e\ ^{\beta_2 X_2} \ ... \ e\ ^{\beta_k X_p}
+\tag{3.1}
+\end{equation}\]</span></p>
+<p>Note that the model above establishes the hazard at any time <span class="math inline">\(t\)</span> as the product of two quantities: the baseline hazard <span class="math inline">\(h_0(t)\)</span> and the exponential of a linear predictor of <span class="math inline">\(p\)</span> explanatory variables <span class="math inline">\(e^{\ \beta_1 X_1 + \ \beta_2 X_2 + ...+ \ \beta_k X_p}\)</span>. The former depends on <span class="math inline">\(t\)</span> but does not depend on the explanatory variables, while the later depends on the explanatory variables but does not depend on <span class="math inline">\(t\)</span>.</p>
+<p>The baseline hazard <span class="math inline">\(h_0(t)\)</span> is the value of the hazard function <span class="math inline">\(h(t)\)</span> when all explanatory variables are equal to 0, since</p>
+<p><span class="math inline">\(e^{\ \beta_1 \times 0 + \ \beta_2 \times 0 + ...+ \ \beta_k \times 0} = e ^ 0 = 1\)</span></p>
+<p>The exponentials of the model coefficients <span class="math inline">\(\beta_1, \beta_2, ..., \beta_p\)</span> are interpreted as <em>hazard ratios</em>. To se this, suppose <span class="math inline">\(X_1\)</span> is a dichotomous variable coded as 0 or 1, and let’s compare the hazards <span class="math inline">\(h(t)\)</span> that will result when <span class="math inline">\(X_1 = 0\)</span>, or when <span class="math inline">\(X_1 = 1\)</span>, assuming all other explanatory variables remain unchanged:</p>
+<ul>
+<li><p><span class="math inline">\(X_1 = 0: \qquad \qquad h(t|X_1 = 0) = h_0(t) \quad e\ ^{\beta_1 \times 0} \ e\ ^{\beta_2 X_2} \ ... \ e\ ^{\beta_k X_p} = h_0(t) \quad e\ ^{0} \ e\ ^{\beta_2 X_2} \ ... \ e\ ^{\beta_k X_p}\)</span></p></li>
+<li><p><span class="math inline">\(X_1 = 1: \qquad \qquad h(t|X_1 = 1) = h_0(t) \quad e\ ^{\beta_1 \times 1} \ e\ ^{\beta_2 X_2} \ ... \ e\ ^{\beta_k X_p} = h_0(t) \quad e\ ^{\beta_1} \ e\ ^{\beta_2 X_2} \ ... \ e\ ^{\beta_k X_p}\)</span></p></li>
+</ul>
+<p>Since <span class="math inline">\(e\ ^0 = 1\)</span>, dividing these two equations we get:</p>
+<p><span class="math display">\[\frac{h(t|X_1 = 1)}{h(t|X_1 = 0)} = \frac{h_0(t) \quad e\ ^{\beta_1} \ e\ ^{\beta_2 X_2} \ ... \ e\ ^{\beta_k X_p}}{h_0(t) \quad e\ ^0 \ e\ ^{\beta_2 X_2} \ ... \ e\ ^{\beta_k X_p}} = \frac{e\ ^{\beta_1}}{e\ ^0} = e\ ^{\beta_1}\]</span>
+This result implies that the hazard ratio on the left hand side of the previous equation is constant and not depend on <span class="math inline">\(t\)</span>. For this reason, the Cox model is sometimes called the Cox <em>proportional hazards</em> model.</p>
+</div>
+<div id="fitting-a-cox-model" class="section level2 hasAnchor" number="3.9">
+<h2><span class="header-section-number">3.9</span> Fitting a Cox model<a href="survival-analysis-and-cox-regression-models.html#fitting-a-cox-model" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>A Cox model can be fitted with function <code>coxph()</code> from package <code>survival</code>. The first argument is a formula with a survival object before the tilde, and one or more explanatory variables after the tilde; the dataframe containing the variables appearing in the formula is passed as a second argument. Here we fit a Cox model for the lung data using <code>sex</code> as the only explanatory variable, and then summarize the resulting object <code>cm1</code>:</p>
+<div class="sourceCode" id="cb171"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb171-1"><a href="survival-analysis-and-cox-regression-models.html#cb171-1" aria-hidden="true" tabindex="-1"></a>cm1 <span class="ot">&lt;-</span> <span class="fu">coxph</span>(<span class="fu">Surv</span>(time, status) <span class="sc">~</span> sex, <span class="at">data =</span> lung)</span>
+<span id="cb171-2"><a href="survival-analysis-and-cox-regression-models.html#cb171-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(cm1)</span></code></pre></div>
+<pre><code>Call:
+coxph(formula = Surv(time, status) ~ sex, data = lung)
+
+  n= 228, number of events= 165 
+
+             coef exp(coef) se(coef)      z Pr(&gt;|z|)   
+sexfemale -0.5310    0.5880   0.1672 -3.176  0.00149 **
+---
+Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+
+          exp(coef) exp(-coef) lower .95 upper .95
+sexfemale     0.588      1.701    0.4237     0.816
+
+Concordance= 0.579  (se = 0.021 )
+Likelihood ratio test= 10.63  on 1 df,   p=0.001
+Wald test            = 10.09  on 1 df,   p=0.001
+Score (logrank) test = 10.33  on 1 df,   p=0.001</code></pre>
+<p>The output starts by informing on the sample size <code>n = 228</code> and the <code>number of events = 165</code>. Then, a first table shows the estimated beta coefficient (<code>coef</code>) for <code>sexfemale</code>, as well as its exponential (<code>exp(coef)</code>), standard error (<code>se(coef)</code>) and the result of a Wald test assessing the null hypothesis that the population coeffiicient is 0 (which implies no effect of the explanatory variable on the hazard function). In this case, the small <em>p</em> value (0.001) provides evidence that the hazard function is different for males and females.</p>
+<p>The exponential of the model coefficient is the hazard ratio comparing females to males, that is <span class="math inline">\(\frac{h(t|female)}{h(t|male)} = 0.5880\)</span>, which implies that the hazard is lower in females than in males. In a second table, we see the lower and upper bounds of the confidence interval for the exponential of the model coefficient, so that we can conclude that the hazard ratio comparing females to males is 0.588 with 95% CI ranging from 0.4237 to 0.816. The column <code>exp(-coef) = 1.701</code> is nothing but the inverse of 0.588, and therefore is the hazard ratio comparing males to females, that is <span class="math inline">\(\frac{h(t|male)}{h(t|female)} = \frac{1}{0.588} = 1.701\)</span>.</p>
+<p>Finaly, the output provides three different tests of the overall model fit, in which a small <em>p</em> value means the model fits the data better than the null model (i.e., a model with the baseline hazard only). All three tests provide very similar results, with an identical <em>p</em> value rounded to the third decimal (<code>_p_ = 0.001</code>).</p>
+<p>Let’s now fit a second Cox model with additional predictors <code>age</code> and <code>ph.ecog</code>, the <a href="https://ecog-acrin.org/resources/ecog-performance-status/">ecog performance status scale</a>:</p>
+<div class="sourceCode" id="cb173"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb173-1"><a href="survival-analysis-and-cox-regression-models.html#cb173-1" aria-hidden="true" tabindex="-1"></a>cm2 <span class="ot">&lt;-</span> <span class="fu">coxph</span>(<span class="fu">Surv</span>(time, status) <span class="sc">~</span> sex <span class="sc">+</span> age <span class="sc">+</span> ph.ecog, <span class="at">data =</span> lung)</span>
+<span id="cb173-2"><a href="survival-analysis-and-cox-regression-models.html#cb173-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(cm2)</span></code></pre></div>
+<pre><code>Call:
+coxph(formula = Surv(time, status) ~ sex + age + ph.ecog, data = lung)
+
+  n= 227, number of events= 164 
+   (1 observation deleted due to missingness)
+
+               coef exp(coef)  se(coef)      z Pr(&gt;|z|)    
+sexfemale -0.552612  0.575445  0.167739 -3.294 0.000986 ***
+age        0.011067  1.011128  0.009267  1.194 0.232416    
+ph.ecog    0.463728  1.589991  0.113577  4.083 4.45e-05 ***
+---
+Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+
+          exp(coef) exp(-coef) lower .95 upper .95
+sexfemale    0.5754     1.7378    0.4142    0.7994
+age          1.0111     0.9890    0.9929    1.0297
+ph.ecog      1.5900     0.6289    1.2727    1.9864
+
+Concordance= 0.637  (se = 0.025 )
+Likelihood ratio test= 30.5  on 3 df,   p=1e-06
+Wald test            = 29.93  on 3 df,   p=1e-06
+Score (logrank) test = 30.5  on 3 df,   p=1e-06</code></pre>
+<p>The output strart by informing that <code>1 observation deleted due to missingness</code>.</p>
+<p>In the table below, the Wald tests indicate that both <code>sex</code> and <code>ph.ecog</code> may be important prognostic variables. While there is no no evidence that the hazard of death (and therefore survival) is affected by <code>age</code>, it is quite obvious that the hazard of death increases with age (as suggested by the value <code>1.0111</code>, corresponding to a one year increase in age), so that we may decide to keep this variable in the model despite the non-significant Wald test. The hazard ratio of <code>sexfemale</code> is very similar to that estimated in the <code>cm1</code> model; and the hazard ratio corresponding to a unit increase in the <a href="https://ecog-acrin.org/resources/ecog-performance-status/">ecog performance status scale</a> is <code>1.59</code>, which implies a 59% increase in the hazard per unit increase in the ecog performance status scale.</p>
+<p>The last part of the output shows the results of several tests (likelihood ratio, Wald and log-rank) assessig the overall model. A significant result in these tests provides evidence that the model explains some variability in survival. In addition, the so called <em>concordance</em> statistic is shown. Concordance is defined as the probability of agreement for any two randomly chosen observations, where in this case <em>agreement</em> means that the observation with the shorter survival time also has the larger risk score. The theoretical range for this statistic is 0 to 1, and the closer to 1, the better the fit.</p>
+<p>The results of a Cox model fit can be displayed graphically on a <em>forest plot</em>. This can be produced with function <code>ggforest()</code> of package <code>survminer</code>. The fit object is the only argument we need to pass to this function, but here we use the optional argument <code>fontsize</code> to make the resulting graphic more readable:</p>
+<div class="sourceCode" id="cb175"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb175-1"><a href="survival-analysis-and-cox-regression-models.html#cb175-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggforest</span>(cm2, <span class="at">fontsize =</span> <span class="dv">1</span>)</span></code></pre></div>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:3-forest"></span>
+<img src="_main_files/figure-html/3-forest-1.png" alt="Forest plot for the estimated effects of model `cm2`" width="1056" />
+<p class="caption">
+Figure 3.3: Forest plot for the estimated effects of model <code>cm2</code>
+</p>
+</div>
+<p>Figure <a href="survival-analysis-and-cox-regression-models.html#fig:3-forest">3.3</a> shows the estimated hazard ratios (HR) for all explanatory variables of model <code>cm2</code>. For factors (<code>sex</code>), the HR for the (first) reference level is always 1, since it compares the reference level with itself (which not very useful); then, the HR for all remaining levels compared to the reference level are displayed. For quantitative variables, the hazard ratios correspond to a unit increase in the variable value. In all cases, the point estimate of the hazard ratio is depicted as a square, and 95% CIs are shown. In the case of <code>age</code> the CI is so narrow that it is hidden by the square.</p>
+</div>
+<div id="assessing-the-proportional-hazards-ph-assumption" class="section level2 hasAnchor" number="3.10">
+<h2><span class="header-section-number">3.10</span> Assessing the proportional hazards (PH) assumption<a href="survival-analysis-and-cox-regression-models.html#assessing-the-proportional-hazards-ph-assumption" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>As we have seen in previous sections, the Cox model assumes that the hazard ratios are are proportional and do not depend on <span class="math inline">\(t\)</span>. This is an important assumption, often a simplification of reality, and we should assess to what extent the simplification is reasonable.</p>
+<p>The PH assumption can be checked with function <code>cox.zph()</code> from the <code>survival</code>package. The fit object is passed as argument to this function. Here we test model <code>cm2</code> fitted above for the PH assumption:</p>
+<div class="sourceCode" id="cb176"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb176-1"><a href="survival-analysis-and-cox-regression-models.html#cb176-1" aria-hidden="true" tabindex="-1"></a>cm2_ph <span class="ot">&lt;-</span> <span class="fu">cox.zph</span>(cm2)</span>
+<span id="cb176-2"><a href="survival-analysis-and-cox-regression-models.html#cb176-2" aria-hidden="true" tabindex="-1"></a>cm2_ph</span></code></pre></div>
+<pre><code>        chisq df    p
+sex     2.305  1 0.13
+age     0.188  1 0.66
+ph.ecog 2.054  1 0.15
+GLOBAL  4.464  3 0.22</code></pre>
+<p><br />
+</p>
+<p>The output shows the result of significant tests for the PH assumption. There is one such test for each predictor variable in the model, plus an overall test (<code>GLOBAL</code>). A low <em>p</em> value in these tests provides evidence of <em>violation</em> of the PH assumption (i.e., evidence of <em>non</em>-proportional hazards). In this case, there is no evidence of non-PH, so that the PH assumption seems reasonable.</p>
+<p>When the PH assumption is violated, there are to possible ways to account for it. First, if the PH assumption is violated for a single explanatory variable, and we are not particularly interested in modeling the efect of this variable, a <em>stratified</em> Cox model can be fitted using this variable to define the strata (see the examples section of <code>?coxph</code>). As a second option, other types of models can be used, such as the so called <em>accelerated failure time models</em>. While these are out of the scope of this course, we provide some links to materials covering both options in the resource section.</p>
+</div>
+<div id="resources-2" class="section level2 unnumbered hasAnchor">
+<h2>Resources<a href="survival-analysis-and-cox-regression-models.html#resources-2" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<ul>
+<li><p>Some books on survival analysis:</p>
+<ul>
+<li><a href="https://www.academia.edu/43332155/Survival_Analysis_A_Self_Learning_Text_Third_Edition">David G. Kleinbaum &amp; Mitchel Klein. Survival Analysis: A Self-Learning Text (Third Edition)</a></li>
+<li><a href="https://xsliulab.github.io/Workshop/2021/week3/survival-analysis-book.pdf">Dirk F. Moore. Applied Survival Analysis Using R</a></li>
+</ul></li>
+<li><p>Fore more on assessing the PH assumption, as well as influential observations, see <a href="https://www.r-bloggers.com/2016/12/cox-model-assumptions/">here</a>.</p></li>
+<li><p>Some articles to learn how to deal with non-proportional hazards:</p>
+<ul>
+<li><a href="https://www.r-bloggers.com/2016/03/dealing-with-non-proportional-hazards-in-r/">Dealing with non-proportional hazards in R</a>.</li>
+<li><a href="https://www.lexjansen.com/phuse/2013/sp/SP07.pdf">Extensions of Cox model for non-proportional hazards purpose</a>.</li>
+<li><a href="https://cran.r-project.org/web/packages/survival/vignettes/survival.pdf">Survival vignette</a> in the <code>survival</code> package).</li>
+<li><a href="https://pubmed.ncbi.nlm.nih.gov/17080754/">Accelerated failure time models</a>.</li>
+</ul></li>
+<li><p>Have a look at this <a href="https://rpkgs.datanovia.com/survminer/survminer_cheatsheet.pdf">Survival analysis/plots cheat sheet</a></p></li>
+<li><p>A couple of very good books in modeling, in general:</p>
+<ul>
+<li><a href="https://www.amazon.com/Regression-Modeling-Strategies-Applications-Statistics-dp-3319194240/dp/3319194240/ref=dp_ob_title_bk">F. Harrell. Regression modeling strategies</a></li>
+<li><a href="https://hastie.su.domains/Papers/ESLII.pdf">T. Hastie, R. Tibshirani &amp; J. Friedman</a></li>
+</ul></li>
+</ul>
+</div>
+<div id="exercises-2" class="section level2 unnumbered hasAnchor">
+<h2>Exercises<a href="survival-analysis-and-cox-regression-models.html#exercises-2" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<ol style="list-style-type: decimal">
+<li><p>In section <a href="survival-analysis-and-cox-regression-models.html#the-cox-model">3.8</a> we proved that, when a predictor is categorical, the exponential of its coefficient is a hazard ratio. Prove that, when there is a quantitative predictor in a Cox model, the exponential of its coefficient is a hazard ratio corresponding to a unit increase in the predictor.</p></li>
+<li><p>Using the <code>ovarian</code> dataset in package survival (see <code>?ovarian</code>), define factors for rx (1=“A”, 2=“B”), resid.ds (1=“no”, 2=“yes”) and ecog.ps (1=“good”, 2=“bad”), and age group with labels “old” (if age &gt;=50) or “young” (otherwise).</p></li>
+<li><p>Create a survival object from futime and fustat, and print it. How many censored observations there are?</p></li>
+<li><p>Use the survival object created in the previous exercise to fit a KM curve for each treatment group, and plot them using option <code>risk.table = TRUE</code> in the <code>ggsurvplot()</code> function call. How many patients were at risk at 600 days?</p></li>
+<li><p>What are the median survival times of ovarian cancer in each treatment group? And what are the survival estimates at 1 and 2 years? Compare the two survival curves with a log-rank test.</p></li>
+<li><p>Does the suvival of ovarian cancer depend on the residual disease? Plot the survival curve for each residual disease group, so that the result of the log-rank test is shown in the graphic.</p></li>
+<li><p>Fit a Cox PH model with the treatment group, residual disease, age group, and ECOG performance status as explanatory variables. Is the proportional hazards assumption reasonable?</p></li>
+<li><p>Plot the hazard rates and corresponding 95% CI for all explanatory variables in the model. What of the explanatory variables are good and bad prognostic factors?</p></li>
+</ol>
+
+</div>
+</div>
+
+
+
+
+
+
+
+            </section>
+
+          </div>
+        </div>
+      </div>
+<a href="the-logistic-regression-model-lrm.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+
+    </div>
+  </div>
+<script src="libs/gitbook-2.6.7/js/app.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/clipboard.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-search.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-sharing.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-fontsettings.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-bookdown.js"></script>
+<script src="libs/gitbook-2.6.7/js/jquery.highlight.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-clipboard.js"></script>
+<script>
+gitbook.require(["gitbook"], function(gitbook) {
+gitbook.start({
+"sharing": {
+"github": false,
+"facebook": true,
+"twitter": true,
+"linkedin": false,
+"weibo": false,
+"instapaper": false,
+"vk": false,
+"whatsapp": false,
+"all": ["facebook", "twitter", "linkedin", "weibo", "instapaper"]
+},
+"fontsettings": {
+"theme": "white",
+"family": "sans",
+"size": 2
+},
+"edit": {
+"link": null,
+"text": null
+},
+"history": {
+"link": null,
+"text": null
+},
+"view": {
+"link": null,
+"text": null
+},
+"download": null,
+"search": {
+"engine": "fuse",
+"options": null
+},
+"toc": {
+"collapse": "subsection"
+}
+});
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    var src = "true";
+    if (src === "" || src === "true") src = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/latest.js?config=TeX-MML-AM_CHTML";
+    if (location.protocol !== "file:")
+      if (/^https?:/.test(src))
+        src = src.replace(/^https?:/, '');
+    script.src = src;
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+</body>
+
+</html>
