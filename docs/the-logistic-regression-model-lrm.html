@@ -30,7 +30,7 @@
   
   
 <link rel="prev" href="the-general-linear-model-glm.html"/>
-
+<link rel="next" href="survival-analysis-and-cox-regression-models.html"/>
 <script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
 <link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
@@ -550,6 +550,25 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li class="chapter" data-level="2.10" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#model-diagnostics"><i class="fa fa-check"></i><b>2.10</b> Model diagnostics</a></li>
 <li class="chapter" data-level="" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#resources-1"><i class="fa fa-check"></i>Resources</a></li>
 <li class="chapter" data-level="" data-path="the-logistic-regression-model-lrm.html"><a href="the-logistic-regression-model-lrm.html#exercises-1"><i class="fa fa-check"></i>Exercises</a></li>
+</ul></li>
+<li class="chapter" data-level="3" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html"><i class="fa fa-check"></i><b>3</b> Survival analysis and Cox regression models</a>
+<ul>
+<li class="chapter" data-level="3.1" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#time-to-event-variables-t"><i class="fa fa-check"></i><b>3.1</b> Time to event variables (T)</a></li>
+<li class="chapter" data-level="3.2" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#censoring"><i class="fa fa-check"></i><b>3.2</b> Censoring</a></li>
+<li class="chapter" data-level="3.3" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#survival-objects-in-r"><i class="fa fa-check"></i><b>3.3</b> Survival objects in R</a></li>
+<li class="chapter" data-level="3.4" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#survival-and-related-functions"><i class="fa fa-check"></i><b>3.4</b> Survival and related functions</a></li>
+<li class="chapter" data-level="3.5" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#estimating-the-survival-function"><i class="fa fa-check"></i><b>3.5</b> Estimating the survival function</a>
+<ul>
+<li class="chapter" data-level="3.5.1" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#quantiles-of-the-survival-time"><i class="fa fa-check"></i><b>3.5.1</b> Quantiles of the survival time</a></li>
+<li class="chapter" data-level="3.5.2" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#plotting-the-estimated-survival-function"><i class="fa fa-check"></i><b>3.5.2</b> Plotting the estimated survival function</a></li>
+</ul></li>
+<li class="chapter" data-level="3.6" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#estimating-the-survival-function-in-independent-samples"><i class="fa fa-check"></i><b>3.6</b> Estimating the survival function in independent samples</a></li>
+<li class="chapter" data-level="3.7" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#comparing-the-survival-function-in-independent-samples"><i class="fa fa-check"></i><b>3.7</b> Comparing the survival function in independent samples</a></li>
+<li class="chapter" data-level="3.8" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#the-cox-model"><i class="fa fa-check"></i><b>3.8</b> The Cox model</a></li>
+<li class="chapter" data-level="3.9" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#fitting-a-cox-model"><i class="fa fa-check"></i><b>3.9</b> Fitting a Cox model</a></li>
+<li class="chapter" data-level="3.10" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#assessing-the-proportional-hazards-ph-assumption"><i class="fa fa-check"></i><b>3.10</b> Assessing the proportional hazards (PH) assumption</a></li>
+<li class="chapter" data-level="" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#resources-2"><i class="fa fa-check"></i>Resources</a></li>
+<li class="chapter" data-level="" data-path="survival-analysis-and-cox-regression-models.html"><a href="survival-analysis-and-cox-regression-models.html#exercises-2"><i class="fa fa-check"></i>Exercises</a></li>
 </ul></li>
 </ul>
 
@@ -1098,13 +1117,6 @@ Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&
 
 </div>
 </div>
-
-
-
-
-
-
-
 <div class="footnotes">
 <hr />
 <ol start="2">
@@ -1116,8 +1128,8 @@ Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&
           </div>
         </div>
       </div>
-<a href="the-general-linear-model-glm.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
-
+<a href="the-general-linear-model-glm.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+<a href="survival-analysis-and-cox-regression-models.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
     </div>
   </div>
 <script src="libs/gitbook-2.6.7/js/app.min.js"></script>
