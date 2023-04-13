@@ -705,7 +705,7 @@ downloadthis::download_file(
 
 Let's get the data file with `load()`, and explore how calcium concentration values relate to age and gender.
 
-```{r 1-ca-explore, fig.heigh = 5, fig.cap="Calcium concentration (mg/dl) by age and gender"}
+```{r 1-ca-explore, fig.height = 5, fig.cap="Calcium concentration (mg/dl) by age and gender"}
 load("data/calcium.RData")
 gf_point(calcium ~ age | gender, data = calcium, color = ~gender, alpha = 0.2)
 ```
@@ -762,7 +762,7 @@ and for females (`genderfemale = 1`), it simplifies to:
 Note that the slope is negative for males, but positive for females. A graphical representation of this model is shown in figure \@ref(fig:1-ca-m1).
 
 
-```{r 1-ca-m1, fig.heigh = 5, fig.cap="Graphical representation of model m1"}
+```{r 1-ca-m1, fig.height= 5, fig.cap="Graphical representation of model m1"}
 gf_point(calcium ~ age | gender, data = calcium, color = ~gender, alpha = 0.1) %>%
   gf_line(predict(m1) ~ age | gender, color = "black")
 ```
