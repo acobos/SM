@@ -1,0 +1,846 @@
+# The general linear model (GLM)
+
+```{r 1-setup, include = FALSE, eval = TRUE}
+rm(list = ls())
+knitr::opts_chunk$set(eval = TRUE, echo = TRUE, 
+                      message = FALSE,
+                      warning = FALSE,
+                      error = TRUE,
+                      fig.align = 'center', fig.width = 11, fig.height = 4)
+
+library(rgl)
+setupKnitr(autoprint = TRUE)
+options(rgl.useNULL = TRUE) # Suppress the separate window.
+
+```
+
+The general linear model (GLM) is a generalization of the [simple linear regression](https://acobos.github.io/DA/assessing-relations.html#linear-regression) model, allowing for more than one explanatory variable. In a GLM, a continuous outcome variable $Y$ is expressed as a linear function of a set of explanatory or predictor variables $X$, plus a random error term assumed to be normally distributed with constant variance $\sigma^2$:
+
+\begin{equation} 
+Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + ... + \beta_p X_p + \epsilon \qquad \qquad \epsilon \sim N(0, \sigma^2)
+(\#eq:glm)
+\end{equation} 
+
+The deterministic part of the model (i.e., all terms but the random error term) provides _predicted_ values (denoted as $\hat{Y}$) for a given combination of $X$ values, and these predictions are interpreted as the mean value of $Y$ for all individuals with the given combination of $X$ values:
+
+$$\hat{Y} = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + ... + \beta_p X_p$$
+
+So that the error terms in the model are just the difference between observed and predicted $Y$ values:
+
+$$\epsilon = Y - \hat{Y}$$
+In the previous equations, the _betas_ are the model _coefficients_ or _parameters_, and our purpose will be to _estimate_ these parameters, as well as the variance of the errors ($\sigma^2$), from a sample of individuals in whom we have measured both the outcome variable $Y$ and the explanatory variables $X_1, X_2, ..., X_p$. Each of these coefficients is interpreted as the _effect_ of the corresponding $X$ variable on $Y$, _given all other $X$ variables_ (i.e., when all other $X$ variables are held constant). 
+
+Explanatory variables in a GLM can be either quantitative or categorical. While there is no problem in entering a quantitative variable in the model equation, categorical variables cannot be entered as such. For instance, consider a model for variable `height` (cm) expressed as a function of variables `age` (years) and `gender` (male/female):
+
+$$predicted\quad height = \beta_0 + \beta_1 \times age + \beta_2 \times gender$$
+How are we supposed to compute the last term, if gender takes values `"male"` or `"female"`? To solve this problem, categorical variables, defined as factors in R, are used to create a set of _dummy variables_ for each level of the factor but the first one. So, if gender has two levels only and the first level is `"male"`, an indicator for `"female"` will be created (and named $genderfemale$), taking value 1 for females, and 0 for males. Then, the model actually fitted will be:
+
+$$predicted\quad height = \beta_0 + \beta_1 \times age + \beta_2 \times genderfemale$$
+Now, because $genderfemale$ takes values 0 or 1, it is clear how to compute the predicted height for any individual. For instance, the predicted height for a 45 years female will be
+
+$$\beta_0 + \beta_1 \times 45 + \beta_2 \times 1 \quad = \quad \beta_0 + \beta_1 \times 45 + \beta_2$$,
+
+but for a 45 years male it will be
+
+$$\beta_0 + \beta_1 \times 45 + \beta_2 \times 0 \quad = \quad \beta_0 + \beta_1 \times 45$$
+
+In general, we will need $k-1$ indicators to enter a factor with $k$ levels in a model. For instance, suppose we want to include an explanatory factor `race` having levels `"white"`, `"black"`, `"asian"` and `"other"`. In this case, we need three indicators, one for each of the levels but the first one (`"black"`, `"asian"` and `"other"`), taking values 0 or 1 depending on `race`, as shown in table \@ref(tab:1-dummy-vars).
+
+```{r 1-dummy-vars, echo=FALSE}
+k <- data.frame(race = c("white", "black", "asian", "other"))
+k$black <- as.numeric(k$race == "black")
+k$asian <- as.numeric(k$race == "asian")
+k$other <- as.numeric(k$race == "other")
+library(tidyverse)
+knitr::kable(k, caption = "Indicators for race") %>% 
+  kableExtra::kable_styling(full_width = FALSE)
+
+```
+
+Thus, a model including the factor `race` would in fact have the following three terms to represent it (and possibly other explanatory variables):
+
+$$\beta_0 + \beta_1 \; raceblack + \beta_2 \; raceasian + \beta_3 \; raceother \;+ \; ... (other \quad predictors)$$
+
+In such a model, the predicted value for an individual depends on the value of `race`:
+
+- when `race` is `"white"`: $\qquad \beta_0 \; + \qquad \; ... (other \quad predictors)$ 
+
+- when `race` is `"black"`: $\qquad\beta_0 + \beta_1 \; + \;... (other \quad predictors)$ 
+
+- when `race` is `"asian"`: $\qquad\beta_0 + \beta_2 \; + \;... (other \quad predictors)$ 
+
+- when `race` is `"other"`: $\qquad\beta_0 + \beta_3 \; + \;... (other \quad predictors)$ 
+
+Fortunately, we do not need to compute these indicators to enter a categorical variable into a model. Provided the categorical variable is a factor, modeling functions such as `lm()` will compute them for us.
+
+In GLMs, the model _parameters_ (i.e., the $\beta$ coefficients and the variance of the residuals $\sigma^2$) are estimated so as to minimize the sum of the squares of the residuals. This criterion is known as _least squares_ or _ordinary least squares_ (OLS).
+
+## Data {#data}
+
+The `lungcap` dataset from package `GLMsData` (see `?lungcap`) has data on the forced expiratory volume (a measure of lung capacity, expressed in litres) in 654 youth, as well as their gender and age, body height (in inches) and smoking habit. The following script gets the data, computes a new variable `height` (by converting inches to centimeters), defines factors for `gender` and `smoke`, saves the result as dataframe `d`, removes dataframe `lungcap`, and gets a summary of `d`:
+
+```{r 1-lungcap}
+library(tidyverse)
+library(GLMsData)
+data(lungcap)                                            # get the dataset
+
+d <- lungcap %>% 
+  janitor::clean_names() %>%
+  mutate(height = round(2.54 * ht),                       # converts from inches to cm
+         gender = as.factor(gender),                      # creates factor for gender
+         smoke = factor(smoke,                            # creates factor for smoke
+                        levels = 0:1,
+                        labels = c("no", "yes"))) %>% 
+  select(-ht)                                             # drops ht
+
+rm(lungcap)                                               # removes lungcap
+summary(d)                                                # summarizes d
+
+```
+
+The summary shows that the age ranges from `r paste(range(d$age), collapse = " to ")` years, males an females are about balanced in number, and there are few smokers.
+
+Suppose our goal is to establish normal ranges for the forced expiratory volume according to height and gender. Because smoking can impair the lung function, we want to exclude 65 smoking individuals from our analysis, so we subset dataframe `d` into `dns` (d non-smokers):
+
+```{r}
+dns <- filter(d, smoke == "no")
+```
+
+Before undertaking any modelling exercise, let's explore the relations of `fev` with `height`, `age`, and `gender`:
+
+```{r 1-explore, fig.cap="Relations of FEV with age, height and gender in non-smokers"}
+library(ggformula)
+plot1 <- gf_point(fev ~ age, data = dns, alpha=0.2)
+plot2 <- gf_point(fev ~ height, data = dns, alpha=0.3)   
+plot3 <- gf_boxplot(fev ~ gender, data =dns)
+
+library(patchwork)
+plot1 + plot2 + plot3
+
+```
+
+In figure \@ref(fig:1-explore) (left), `fev` shows a quite strong, about linear relation with `age` , and even stronger with `height` (center),  though a bit curvilinear. Also, the variability of `fev` seems to increase with both `age` and `height`. The distribution of `fev` values in men and women (right) are much overlapped, although in the former it extends to higher values. 
+
+The non-linearity of the relation between `fev` and `height`, as well as the heteroscedasticity of `fev` with both `age` and `height`, are indications that the GLM model assumptions will not be met. But let's start simple and fit a GLM anyway; later on we will see how to improve our analysis.
+
+
+## Fitting a GLM
+
+A GLM can be fitted with function `lm()`, by specifying the model in a formula as the first argument, and the dataframe in a second `data=` argument. The following script fits a model of `fev` based on `height` and `gender`, saves it as `model1` and then prints it:
+
+```{r}
+
+model1 <- lm(fev ~ height + gender, data = dns) 
+model1
+
+```
+
+\
+
+When we print a model object like `model1`, the _estimates_ of the model `Coefficients` are shown. From these, the _estimated_ regression equation is:
+
+<center>
+_predicted_ `fev = -5.33027 + 0.05093 height + 0.10568 genderM`
+</center>
+
+\
+
+The interpretation of the model coefficients is as follows:
+
+- The intercept is the predicted `fev` for any observation having all explanatory variables equal to zero. In the example we are considering this interpretation is of no use, since zero is an impossible value for `height`. 
+
+- The coefficient for `height` means that, _given the gender of an individual_ (or, for any gender), a unit increase in `height` (1 cm) will result in an increase of 0.05093 liters in the predicted `fev` value.
+
+- The coefficient for `genderM` means that, _given the height of an individual_ (or, for any height), the predicted value of `fev` for a male will be 0.10568 liters more than for a female.
+
+Model coefficients are sometimes refered to as the _effect_ of the corresponding $X$ variable on the predicted $Y$ variable. So, 0.05093 is said to be the effect of `height` on the predicted `fev`, and 0.10568 is the effect of being male on the predicted `fev`.
+
+### Predicted values
+
+Using the equation we got in the previous section we can obtain predictions of the `fev` given `height` and `genderM` (coded as 0 for females, and 1 for males). Although we could use the equation to calculate ourselves the predictions of all the observations in the data frame, the `predict()` function (with the model object as argment) will do it for us. The result will be a vector with as many elements as rows in the dataframe used to fit the model (`dns`in this case). Here we use `head()` to limit the output of the predictions to the first six cases in `dns`: 
+
+```{r}
+predict(model1) %>% head()
+```
+
+A graphical representation of the fitted model is shown in figure \@ref(fig:1-model1). Note the use of `predict()` in `gf_line()` to overlay predictions on the scatterplot of `fev` by `height`. As you see, the graphical appearance of `model1` is that of two straight lines, one for males and another one for females, having identical slope but different intercept. 
+
+
+```{r 1-model1, fig.width = 7, fig.cap = "Graphical representation of model 1"}
+library(ggformula)
+gf_point(fev ~ height, col = ~ gender, data =dns, alpha = 0.3)  %>% 
+  gf_line(predict(model1) ~ height, col = ~ gender, data = dns) 
+
+```
+
+
+By default, function `predict()` computes predictions for the observations (rows) in the dataframe used to fit the model, but it can be used also to compute predictions for arbitrary values of the explanatory variables. To this end, we need to use the optional argument `newdata`, passing it a dataframe with the combinations of values of explanatory variables for which we want to compute the prediction. In this dataframe, the predictor variables should have the same name as in the dataset used to fit the model. Here we prepare a new dataframe with height values of 150, 160, 170, and 180 cm, for both boys and girls:   
+
+```{r }
+# create dataframe with desired combinations of predictors (x) 
+x <- data.frame(height = rep(seq(150, 180, 10), each=2), 
+                gender = rep(c("M", "F"), each = 2))
+x
+
+
+```
+
+Now we can use dataframe `x` to compute the predicted `fev` values for each of its combinations of height and sex values: 
+
+```{r}
+predict(model1, newdata = x)
+```
+
+
+
+If desired, these predictions could be incorporated into dataframe `x` using `predict()` in a `mutate()` statement:
+
+```{r}
+x %>% 
+  mutate(predicted_fev = predict(model1, newdata = x))
+```
+
+
+### Residuals
+
+The residuals of a fitted model are estimates of the model error terms ($\epsilon$) in the population equation. For any observation, the residual ($e$) is computed as the difference between the observed value ($Y$) and the value predicted by the model ($\hat{Y}$):
+
+$$e = Y - \hat{Y}$$
+
+Figure \@ref(fig:1-model1-resid) shows the graphical representation of  `model1` (just as in figure \@ref(fig:1-model1)), but now in two different panels for females (F) and males (M). The black lines are the same lines appearing in figure \@ref(fig:1-model1). For each observation, the vertical distance between the observed `fev` value (dots) and the corresponding predicted value (black lines) is displayed as a red line segment to represent its residual value. For all dots above the lines, the observed `fev` value is greater than the predicted value, and therefore the residual will be positive. Conversely, for all dots below the line, the observed value is lower than the predicted value, and therefore the residual will be negative. Any dot that lie exactly on the line have equal observed and predicted values, and therefore its residual value is zero. 
+
+```{r 1-model1-resid, fig.cap="Graphical representation of model 1 and residuals"}
+gf_point(fev ~ height | gender, data =dns, alpha = 0.2)  %>% 
+  gf_line(predict(model1) ~ height, data = dns) +
+  geom_segment(aes(xend = height, yend = predict(model1), color = "resid")) +
+  scale_color_manual(values = c(resid = "darkred"), labels = c(resid = "residuals"))
+
+```
+
+
+The residuals of the model can be obtained with function `resid()` applied to the model object `model1`, as done below (again, we use `head()` to limit the output to the residuals of the first six cases in `dns`):
+
+```{r}
+resid(model1) %>%  head()
+```
+
+We can easily verify that residuals are nothing but the difference of observed and predicted values. Note that now we get exactly the same values listed above using `resid()`:
+
+```{r}
+obs_minus_pred <- dns$fev - predict(model1) 
+head(obs_minus_pred)
+```
+
+
+## Inference on the model coefficients {#inference}
+
+It is important to understand that the equation obtained in the previous section \@ref(fitting-a-glm) is an _estimate_ of the _population equation_ (that is, what we would get if we could fit the model with _all individuals in the population_). We may want to answer questions about the model coefficients in the population equation, such as:
+
+- What are likely values of model coefficients in the population equation?
+
+- What are likely values of the model predictions in the population equation?
+
+- Could _some_ model coefficients be equal to zero in the population equation?
+
+- Could _all_ model coeffcients be equal to zero in the population equation?
+
+The first two questions above are _estimation_ questions, and the last two can be solved with appropriate significante tests. We address each of these questions in the following subsections.
+
+
+### Confidence intervals (CI) for the model coefficients {#CIC}
+
+Confidence intervals for the model coefficients can be easily obtained with function `confint()` applied to a model object:
+
+```{r}
+confint(model1)
+```
+
+The output shows the lower (`2.5%`) and upper (`99.5%`) limits of the 95% CI for each coefficient in `model1`. The interpretation is as usual for a CI: we are 95% confident that (rounding to the fourth decimal):
+
+- for any given gender, a unit increase in height (1 cm) will result in an increase of `r round(confint(model1)["height",1], 4)` to `r round(confint(model1)["height",2], 4)` liters in the predicted FEV.
+
+- for any given height, the predicted value of FEV for a male will be between  `r round(confint(model1)["genderM",1], 4)` and `r round(confint(model1)["genderM",2], 4)` liters more than for a female.
+
+CI's can be computed for any desired confidence level using the argument `level` in `confint()`. For instance, here we compute the 99% CI for the model coefficients. Note that the confidence level has to be specified as a probability rather than as a percentage:
+
+```{r}
+confint(model1, level = 0.99)
+```
+
+
+### Confidence intervals (CI) for the model predictions {#CIP}
+
+A CI can also be obtained for each possible model prediction. Because a  model prediction is interpreted as the expected or mean FEV for a given combination of height and gender, a CI for the prediction can be interpreted as a CI for the mean FEV, given the predictors. These can be computed using the optional argument `interval` in the `predict()` function, as done below (we use `head()` to limit the output to the first six cases in `dns`):
+
+```{r}
+predict(model1, interval = "confidence") %>% head()
+```
+
+The result of the previous function call is a _matrix_, having as many rows as `dns` and three columns: `fit` (the predicted value), and `lwr`and `upr` corresponding to the lower and upper limits of the 95% CI for the prediction. These can be used to plot the _confidence bands_ of the model equation, as done in figure \@ref(fig:1-model1-ci-bands). Note in the code below the sub-setting of the matrix produced by `predict()`, using `[,1]`, `[,2]`, and `[,3]` to get the first, second or third column of the matrix, respectively.
+
+```{r 1-model1-ci-bands, fig.height = 5, fig.cap= "Graphical representation of model 1 (solid lines) and 95% confidence bands (dashed lines)"}
+gf_point(fev ~ height | gender, col = ~ gender, data =dns, alpha = 0.2) %>% 
+  gf_line(predict(model1, interval = "confidence")[,1] ~ height) %>% 
+  gf_line(predict(model1, interval = "confidence")[,2] ~ height, linetype = 2) %>% 
+  gf_line(predict(model1, interval = "confidence")[,3] ~ height, linetype = 2)
+  
+```
+
+The confidence bands (dashed lines) in figure \@ref(fig:1-model1-ci-bands) mean that, in the population, the model could be any line we can draw within these limits. Note that the bands are not straight lines parallel to the estimated model (solid line), but are curved, so that the CI is wider for extremes values of height (such as 120 or 180 cm) than they are for values close to the mean of height (such as 150 cm). 
+
+### Tests on the model coefficients
+
+Suppose we are doubtful about the relation between one of the explanatory variables ($X$) and the predicted variable $Y$. For instance, we may wonder if `gender` is really related to `fev`. If gender was unrelated to the forced expiratory volume, then the slope of `gender` would be equal to zero in the population equation (meaning that gender has no effect on the FEV, or is unrelated to FEV). Therefore, we would like to conduct a significance test with the following hypotheses:
+
+$$H_0: \qquad \beta_{genderM} = 0$$
+$$H_1: \qquad \beta_{genderM} \ne 0$$
+
+Such type of tests, sometimes called _Wald tests_, can be produced with function `summary()` applied to the model object `model1`:
+
+```{r}
+summary(model1)
+```
+
+The first part of the output (`Residuals`) shows summary statistics for the residuals of the model. The minimum residual is `r round(min(resid(model1)),4)` liters, the maximum is `r round(max(resid(model1)),4)` liters, and the median is very close to zero. The mean of the residuals is not reported because it is _always_ exactly zero (this is a property of GLS models).
+
+The `Coefficients` part of the output shows the estimates of the model coefficients (first column `Estimate`), their standard error (`Std. Error`), a t-statistic (`t value`) and the _p_ value (`Pr(>|t|)`). When the p _value_ is too small, the null hypothesis stated above is rejected. In this case, all coefficients show small _p_ values and therefore we can conclude that they are all different from zero in the population equation. In other words, for coefficients other than the intercept, a significant result in this test is interpreted as evidence of a linear relation of FEV with the corresponding explanatory variable. In this case, the Wald tests provide evidence that both height and gender are related to FEV.
+
+Last, the output provides an estimate for the standard deviation of the residuals $\sigma$ (`Residual standard error`), some measures of how well the model fits the data (`Multiple R-squared` and `Adjusted R-squared`), and a test (`F-statistic` and `p-value`) of the null hypothesis that _all_ $\beta$ coefficients are zero in the population regression equation, i.e., that all explanatory variables are linearly independent of the $y$ variable.    
+
+
+## Goodness-of-fit
+
+In our sample data, the FEV values ($Y$) range from `r min(dns$fev)` to `r max(dns$fev)` liters, with mean `r round(mean(dns$fev), 3)` liters. If we want to predict the FEV value for a particular individual and we have no information on his or her height and gender, our best guess would be the mean value of FEV in the whole sample, `r round(mean(dns$fev), 3)` liters. The error of such a prediction would be the difference between the observed FEV for this individual ($Y$) an the mean of FEV ($\bar{Y}$), that is, $Y - \bar{Y}$. However, if we know the height and the gender of this individual, we can get a better prediction using `model1` ($\hat{Y}$ = `-5.33027 + 0.05093 height + 0.10568 genderM`), reducing the prediction error to $Y - \hat{Y}$.  
+
+In fact, the error of the initial prediction based on the sample mean ($Y - \bar{Y}$) can be decomposed in two parts, as follows:
+
+\begin{equation} 
+Y - \bar{Y} = (Y - \hat{Y}) + (\hat{Y} - \bar{Y})
+(\#eq:decomposition)
+\end{equation} 
+
+
+- $(Y - \hat{Y})$ is the residual of `model1`, that is, the prediction error when using `model1` to get a better prediction $\hat{Y}$.
+
+- $(\hat{Y} - \bar{Y})$ is the part of the error in our initial prediction that can be explained by `model1` (i.e., by the height and the gender of the individual). 
+
+This decomposition has been represented in figure \@ref(fig:1-decomposition) for a couple of cases. The black solid lines are predictions made by `model1`. The black dashed lines indicate the overall mean of FEV in the sample. Blue segments indicate the deviation from the overall mean that are explained by the model, and red segments indicate the residuals, that is, the part of deviation from the overall mean that are not explained by the model.
+
+```{r  1-decomposition, echo = FALSE, fig.height = 5, fig.cap="Graphical representation of the decomposition of deviations from overall mean of FEV according to model 1"}
+dns$case <- 1:nrow(dns)
+dns$predicted <- predict(model1)
+
+cases <- dns %>%
+  filter(case %in% c(19, 542))
+
+gf_point(fev ~ height | gender, data =dns, alpha = 0.1)  %>%
+  gf_line(predicted ~ height, data = dns) +
+  geom_hline(yintercept=mean(dns$fev), linetype="dashed") +
+  geom_segment(aes(x = height, y = predicted,
+                   xend = height, yend = mean(dns$fev)),
+                   col = "blue", data = cases) +
+  geom_segment(aes(x = height, y = predicted,
+                   xend = height, yend = fev),
+               col = "red", data = cases) +
+  geom_point(data = cases) 
+
+```
+
+
+It can be shown that the equality of equation \@ref(eq:decomposition) holds after squaring the three differences and summing over all the ($n$) individuals, that is
+
+\begin{equation} 
+\sum_{i=1}^{n} (Y - \bar{Y})^2 = \sum_{i=1}^{n}(Y - \hat{Y})^2 + \sum_{i=1}^{n}(\hat{Y} - \bar{Y})^2
+(\#eq:sum-of-squares)
+\end{equation} 
+
+The three terms in equation \@ref(eq:sum-of-squares) are called _sums of squares_ (or sometimes, _variation_), and measure (from left to right):
+
+- the total variation of $Y$ around its mean $\bar{Y}$, 
+
+- the variation of the residuals, and 
+
+- the variation of the predictions $\hat{Y}$ around the mean $\bar{Y}$. 
+
+Equation \@ref(eq:sum-of-squares) shows that the _total sum of squares_ can be decomposed in two parts: the _residual sum of squares_, and the variation of the model predictions. Let's verify this for `model1`:
+
+```{r}
+## sum of squares of 
+ss_total <- sum((dns$fev - mean(dns$fev))^2)            # variation of FEV around its mean
+ss_resid <- sum(resid(model1)^2)                        # variation of residuals 
+ss_model <- sum( (predict(model1) - mean(dns$fev))^2 )  # variation of predictions
+
+ss_total
+ss_resid 
+ss_model
+ss_resid + ss_model == ss_total
+
+```
+
+Clearly, the greater the variation of the predictions (blue segments in figure \@ref(fig:1-decomposition)) and the smaller the variation of the residuals (red segments), the better the model will be. Then, a natural measure of how well a model fits the data will be given by the _proportion of the total variation that is explained by the model_, that is 
+
+$$R^2 = \frac{\sum_{i=1}^{n}(\hat{Y} - \bar{Y})^2}{\sum_{i=1}^{n} (Y - \bar{Y})^2}$$
+This quantity, called _coefficient of determination R-squared_, measures how good a model is: the higher the $R^2$ value, the better a model fits the data (or predicts $Y$). Since all terms in equation \@ref(eq:sum-of-squares) are necessarily non-negative (because of the squares), and the top of the previous formula is part of the bottom, the theoretical range of $R^2$ is 0 to 1. A value of 0 would imply that the model explains no variation at all. A value of 1 would imply that the model explains _all_ the variation (and there is no residual variation), in which case the model would fit the data perfectly. 
+
+It is easy to verify that the previous formula for $R^2$ gives the same result given by `summary(model1)`:
+
+```{r}
+
+ss_model / ss_total                # R-squared computed from sums of squares
+summary(model1)$r.squared          # R-squared as reported by summary(model1)
+```
+
+Thus, `model1` explains `r round(summary(model1)$r.squared * 100,1)` % of the total variation of FEV values. Consequently, the residual variation is `r 100 - round(summary(model1)$r.squared * 100,1)` % of the total variation of FEV. Figure \@ref(fig:1-variations) shows the centered distributions^[A centered distribution is what results from subtracting the mean from all its values. For example, $Y-\bar{Y}$ is the centered distribution of $Y$.] of observed and predicted FEV values, and of the residuals.
+
+
+
+```{r 1-variations, fig.height = 5, echo = FALSE, fig.cap = "centered distribution of observed and predicted FEV, and residuals"}
+
+dns %>% 
+  mutate(Observed = fev - mean(fev),
+         Predicted = predict(model1) - mean(fev),
+         Residual = resid(model1)) %>% 
+  select(Observed:Residual) %>% 
+  pivot_longer(Observed:Residual) %>% 
+  mutate(name = factor(name, levels = c("Residual", "Predicted", "Observed"))) -> k
+
+gf_jitter(value ~ name, data = k, 
+          alpha = 0.2, width = 0.2, 
+          col = ~name, xlab = "", ylab = "liters") +
+  scale_color_manual(values = c("black", "blue", "red")) +
+  theme(legend.position="none") +
+  coord_flip()
+
+
+ 
+  
+```
+
+\
+Although $R^2$ is a goodness-of-fit measure with an interesting interpreteation (i.e., the proportion of variance of the outcome variable that is explained by the model), it has a limitation when used to compare different models. This limitation is due to the fact that $R^2$ will increase as we add explanatory variables to a model, even if some of these variables do not improve much its predictive capacity. Therefore, when comparing two models with a different number of predictors, the more complex model will always have a higher $R^2$ value, and might be judged to be better than simpler models. However, simple models (or _parsimonious_ models, as they are sometimes called) are in general preferable to complex models, particularly when the later includes some predictors with no predictive capacity. To avoid this problem, a version of $R^2$ that _penalizes_ model complexity is given by a measure called _adjusted_ $R^2$, which is computed as:
+
+$$R^2_{adj} = 1-\frac{(1-R^2)(n-1)}{n-k-1}$$
+where $n$ is the number of observations and $k$ is the number of coefficients in the model, excluding the intercept. 
+
+As noted in the previous section, the value of both $R^2$ and $R^2_{adj}$ are shown at the end of the output provided by `summary()`. $R^2_{adj}$ provides a measure better than $R^2$ to compare models with a different number of predictors. $R^2_{adj}$ may be actualy lower if the additional predictors of the more complex model have little capacity of improving predictions.
+
+
+
+
+## Assessing assumptions
+
+The validity of the inferential analyses discussed in section \@ref(inference) depend on the following assumptions:
+
+1. The relation of $Y$ and $X$ variables is as specified by the model, i.e., the model is appropriate.
+
+1. Observations are independent from each other.
+
+1. The prediction errors follow a normal distribution with constant variance.
+
+The last two assumptions are sometimes expressed by saying that errors are _independent and identically distributed_ (iid) random variables following a normal distribution with constant variance, which is concisely expressed as $\quad \epsilon \sim  N(0, \sigma)$.
+
+The independence of observations is generally met when each observation corresponds to a different individual, which is the case in the `dns` dataset. However, this assumption would be violated if some individual(s) contributed with more than one observation (i.e, when two or more points in a scatterplot correspond to the same individual). The condition of independent observations is sometimes expressed by saying that the error terms of different observations are uncorrelated, i.e., $Cov(\epsilon_i, \epsilon_j) = 0$ for all $i \ne j$.
+
+The remaining assumptions can be verified by inspecting some plots of the residuals that can be easily produced with the base R function `plot()` applied to the model object, and a further argument to indicate the type of plot we want (out of six plot types; see `?plot()` for more details). A couple of such plots are produced below for `model1`: a residual vs predicted (or fitted) values, and a normal quantile-quantile plot of the residuals. Because these plots are created with the base R plotting system, the `par()` function is used previously to set two graphic slots and the plot margins.  
+
+```{r 1-model1-dx, fig.cap = "Diagnostic plots for model1"}
+
+# to set two slots (side by side) in the graphic output, and the plot margins
+par(mfrow = c(1,2), mar = c(4,7,2,2))        
+plot(model1, 1)              # plot 1:  residuals vs predicted values
+plot(model1, 2)              # plot 2:  Normal QQ plot of residuals
+
+```
+
+When the model assumptions hold, a zero-centered horizontal band (or ellipse) should be seen in the `Residual vs Fitted` plot of figure \@ref(fig:1-model1-dx) (left), with about the same vertical variability for all fitted values. In this case we see a slightly U-shaped pattern (highlighted by the red line) instead of a horizontal band, which means that the relation of `fev` and `height` is not linear. In addition, the vertical variability of the residuals increases from left to right, suggesting that their variance is not constant, a phenomenon called _heteroscedasticity_. In fact, both the non-linearity and the heteroscedasticity are already visible in the scatterplot of figure \@ref(fig:1-explore) (center), but the residual vs fitted plot makes them even more evident.
+
+The `Normal QQ` plot \@ref(fig:1-model1-dx) (right) shows a pretty good approximation to the normal distribution (most points are over the dashed line representing a perfect normal distribution), though there is a slight deviation in the tails of the distribution, where some outliers are identified by the row number in dataframe `dns`. 
+
+Non-linearities and heteroscedasticity are common phenomena when analyzing real data. In the next sections we see how to cope with them  and fit better models. 
+
+
+### Fixing non-linearity: polynomials
+
+There are several ways we could try to address a non-linear relationship of $Y$ with an explanatory variable $X$ . One such way is to use polynomials to accommodate the non-linearity. Let's try to fit a model with a linear and a quadratic term for `height`, by using function `poly()`. This function builds a polynomial for the variable indicated as first argument, and the degree of the polynomial as second argument. Here, we fit a quadratic function (a second degree polynomial) for `height` and then show its graphical representation by plotting predicted values over the scatterplot:
+
+```{r 1-model2, fig.height = 5, fig.cap = "Graphical representation of model2"}
+model2 <- lm(fev ~ poly(height,2) + gender, data = dns) 
+
+gf_point(fev ~ height, col = ~ gender, data =dns, alpha = 0.3)  %>% 
+  gf_line(predict(model2) ~ height, col = ~ gender, data = dns) 
+
+```
+
+Figure \@ref(fig:1-model2) shows that a second degree polynomial on height follows more closely the change of FEV as height increases. The estimates of the model coefficients are now:
+
+```{r}
+model2
+```
+
+Therefore, the estimated equation is
+
+<center>
+_predicted_ `fev = 2.53928 + 17.87793 height + 2.87018 height^2 + 0.05104 genderM`
+</center>
+
+\
+
+By inspecting the diagnostic plots for `model2` we see we have fixed the non-linearity problem, but heteroscedasticity persists:
+
+```{r 1-model2-dx, fig.cap="Diagnostic plots for model 2"}
+par(mfrow = c(1,2), mar = c(4,7,2,2))        
+plot(model2, 1)              
+plot(model2, 2)      
+```
+
+
+### Fixing heteroscedasticity
+
+Heteroscedasticity is sometimes fixed using a logarithmic transformation of the $Y$ variable. Let's see what happens if we plot the logarithm of FEV against height: 
+
+```{r 1-log-fev, fig.cap = "Scatterplot of log(FEV) by height and gender"}
+gf_point(log(fev) ~ height, col = ~ gender, data =dns, alpha = 0.3)   
+```
+
+In figure \@ref(fig:1-log-fev), the relation of `log(fev)`and `height` looks linear, with pretty constant variability of `log(fev)` values across `height` values. So, by taking logs of FEV, we got rid of both the non-linearity and heteroscedasticity. Let's then fit a third model using `log(fev)` instead of `fev` as dependent variable, and see what are the estimates of the model coefficients:
+
+```{r 1-model3}
+model3 <- lm(log(fev) ~ height + gender, data = dns)
+model3
+```
+
+The estimated equation is now:
+
+<center>
+_predicted_ `log(fev) = -2.2771 + 0.0205 height + 0.0168 genderM`
+</center>
+
+\
+
+Diagnostic plots (figure \@ref(fig:1-model3-dx) look better now: the residual vs fitted values shows a horizontal ellipse with no hint of heteroscedasticity, but the normal QQ plot shows just a couple of outliers in the lower tail.   
+
+```{r 1-model3-dx, fig.cap = "Diagnostic plots of model 3"}
+par(mfrow = c(1,2), mar = c(4,7,2,2))        
+plot(model3, 1)              
+plot(model3, 2)      
+```
+
+### Influence measures
+
+Outliers may influence the estimates of the model parameters (i.e., distort these estimates). Weather or not they do it in a non-negligible way depends on how many they are, how far they are, and the sample size; but it may be difficult to judge their influence from the graphics of figure \@ref(fig:1-model3-dx). To judge this, a measure of influence called Cook's distance is useful. The Cook's distance $D_i$, which is computed for each observation ($i = 1, 2, ..n$), is a (normalized) measure of the overall change in the predicted values that would result from removing this observation. 
+
+$$D_i = \frac{\sum_{j=1}^{n} (\hat{Y}_j - \hat{Y}_{j(i)})^2}{k \; MSE}$$
+where, 
+
+- $\hat{Y}_j$ is the predicted value for observation $j$  
+
+- $\hat{Y}_{j(i)}$ is the predicted value for observation $j$ after removing observation $i$
+
+- $k$ is the number of coefficients in the model, and
+
+- $MSE$ is the mean squared error (the mean of the squared residuals).
+
+Cook's distances can be inspected in a further diagnostic plot we can get with `plot()`, passing 4 as second argument:
+
+```{r fig.width=4, fig.cap = "Cook's distances by observation index"}
+plot(model3, 4)
+```
+
+As a rule of thumb, outlying observations will have little influence if the Cook's distance is below 0.5 (or even below 1). Therefore, no worries in this case, since the highest value is about 0.05 (for observation 111).
+
+
+## Probability intervals (or prediction intervals)
+
+In section \@ref(CIP) we saw how to get CIs for the model predictions, which refer to the expected or mean values $\hat{Y}$ for cases with particular values of the explanatory variables. But suppose we now want to compute a  _probability interval_, an interval that will include _individual_ $Y$ values with a given probability. This type of interval can be also computed with function `predict()`, but specifying the argument `interval = "prediction"` as done below (we use `head()` to limit the output to the first six cases in `dns`): 
+
+```{r}
+predict(model3, interval = "prediction") %>% head()
+```
+
+The output shows the predictions (`fit`) and lower (`lwr`) and upper (`upr`) limits of 95% probability intervals. By default, `predict()`computes 95% probability or confidence intervals, but this can be changed with its optional argument `level`. 
+
+Below we plot the 95% probability bands and also the 95% CI bands for `model3` to see how different they are: probability bands are much wider than confidence bands.
+
+```{r 1-model3-pi-bands, fig.height = 5, fig.cap= "Graphical representation of model 3 (solid lines), 95% CI bands (black dashed lines) and 95% probability bands (colored dashed lines)"}
+
+gf_point(log(fev) ~ height | gender, col = ~ gender, data =dns, alpha = 0.2) %>% 
+  gf_line(predict(model3, interval = "prediction")[,1] ~ height) %>% 
+  gf_line(predict(model3, interval = "prediction")[,2] ~ height, linetype = 2) %>% 
+  gf_line(predict(model3, interval = "prediction")[,3] ~ height, linetype = 2) %>% 
+  gf_line(predict(model3, interval = "confidence")[,2] ~ height, linetype = 2, color = "black") %>% 
+  gf_line(predict(model3, interval = "confidence")[,3] ~ height, linetype = 2, color = "black")
+  
+```
+
+Because `model3` was fitted on the log of FEV, predictions, confidence intervals and probability intervals computed from this model are log-transformed values of FEV (see the vertical axis of figure \@ref(fig:1-model3-pi-bands)). However, the log transformation can be reverted by exponentiating the results (i.e., the predictions, their CI's and predictiony intervals):
+
+```{r 1-exp-results, fig.height = 5, fig.cap= "Transforming back the results to the original FEV scale"}
+
+gf_point(fev ~ height | gender, col = ~ gender, data =dns, alpha = 0.2) %>% 
+  gf_line(exp(predict(model3, interval = "prediction")[,1]) ~ height) %>% 
+  gf_line(exp(predict(model3, interval = "prediction")[,2]) ~ height, linetype = 2) %>% 
+  gf_line(exp(predict(model3, interval = "prediction")[,3]) ~ height, linetype = 2) %>% 
+  gf_line(exp(predict(model3, interval = "confidence")[,2]) ~ height, linetype = 2, color = "black") %>% 
+  gf_line(exp(predict(model3, interval = "confidence")[,3]) ~ height, linetype = 2, color = "black")
+  
+```
+
+\
+
+The 95% probability intervals for individual FEV values shown in figure \@ref(fig:1-exp-results) could be used as reference normal ranges for FEV, given the height and gender of an individual (as we supposed was the goal of the analysis in section \@ref(data)). 
+
+## Models with two continuous predictors
+
+The models fitted in previous sections were all based on height and gender, which are quantitative and categorical variables, respectively. That is why the graphical representation of these models was a couple of lines, one for each gender, describing the relation of FEV and height. 
+
+Let's now fit a model with two quantitative predictors, such as height and age:
+
+```{r 1-model4}
+model4 <- lm(log(fev) ~ height + age, data = dns)
+model4
+```
+
+Therefore, the estimated equation is:
+
+_predicted_ `fev = -1.93120 + 0.01677 height + 0.02493 age`
+
+When a model is based on two quantitative explanatory variables, the equation corresponds to a plane. Figure \@ref(fig:1-model4-3d) shows the _regression plane_ of `model4`. This plane cuts the $Y$ axis at the intercept (-1.93120), and is tilted according to the slopes of height and age (in the direction of their respective axes). 
+
+```{r 1-model4-3d, echo = FALSE, fig.height = 7, fig.width=7, fig.align='center',   fig.cap="Graphical representation of model 4: regression plane"}
+library(predict3d)
+predict3d(model4, radius=0.5, show.subtitle = FALSE,
+          plane.color = "steelblue", plane.alpha = 0.8)
+rgl::rglwidget()
+```
+
+If a model has more than two quantitative predictors, the plane  generalizes to a _hyperplane_ that cannot be represented graphically in a 2D screen. But let's see what happens if we addition a categorical variable like gender to `model4`:
+
+
+```{r 1-model5}
+model5 <- lm(log(fev) ~ height + age + gender, data = dns)
+model5
+
+```
+
+Therefore, the estimated equation is:
+
+_predicted_ `fev = -1.90378 + 0.01642 height+ 0.02609 age + 0.02840 genderM`.
+
+Now `model5` are two _parallel_ regression planes, as shown in figure \@ref(fig:1-model5-3d). While the two planes may look the same, they are actually different. The intercept for the plane of females is -1.90378, while that of males is -1.875385. Guess why?
+
+```{r 1-model5-3d, echo = FALSE, fig.height = 4.5, fig.width=9, fig.align='center',   fig.cap="Graphical representation of model 5: parallel regression planes for males an females"}
+predict3d(model5, radius=0.5, show.subtitle = FALSE,
+          plane.color = "steelblue", plane.alpha = 0.8)
+rgl::rglwidget()
+```
+
+
+## Comparing models
+
+In previous sections we fitted three different models for `log(fev)`: `model3`, `model4` and `model5`. A first step in comparing these three models is to look at their $R^2_{adj}$ values. We can easily pick the value of $R^2_{adj}$ from the summary of a model, since `summary()` produces a list and one of its elements is precisely the $R^2_{adj}$ statistic, identified as `adj.r.squared`:
+
+```{r 1-summary-elements}
+summary(model3) %>% names()         # elements of summary() result?
+```
+
+Here we pick the `adj.r.squared` element of each model summary:
+
+```{r 1-adj-R2}
+summary(model3)$adj.r.squared
+summary(model4)$adj.r.squared
+summary(model5)$adj.r.squared
+
+```
+
+According to $R^2_{adj}$, `model5` is better. However, particularly when the improvement in $R^2_{adj}$ is small, we may wonder if it is _significantly_ better. This can be investigated with function `anova()`, by passing two (or more) models as arguments, provided they are _nested_ models. Two models are nested if one of them is contained in the other. Here we compare `model4` and `model5`:
+
+```{r 1-anova34}
+anova(model4, model5)
+```
+
+The result shows the residual sum of squares (`RSS`) and the residual _degrees of freedom_ (`Res.Df`) for each model (the residual degrees of freedom of a model is the sample size minus the number of parameters in the model). Then, for the second model in the output, the change in both degrees of freedom (`Df`) and RSS (`Sum of Sq`) with respect to the first model are shown, as well as the result of an F-test (`F`) assessing the significance (`Pr(>F)`) in the reduction of the RSS. In this case, the low _p_ value indicates a _significant_ reduction in the RSS of the second model (`model 5`) as compared to the first model (`model4`). Therefore, we can conclude that `model5`fits the data significantly better than `model4`. 
+
+
+## Confounding
+
+Suppose we now want to investigate the effect of smoking on the FEV. Figure \@ref(fig:1-smoke) (left) shows the boxplot of `fev` by `smoke` in dataframe `d`. Surprisingly enough, smokers tend to show higher FEV values than non-smokers, which is counter intuitive. 
+
+```{r 1-smoke, fig.cap = "FEV and age in smokers and non-smokers"}
+plot1 <- gf_boxplot(fev ~ smoke, data = d) + coord_flip()
+plot2 <- gf_boxplot(age ~ smoke, data = d) + coord_flip()
+plot1 + plot2
+```
+
+However, it is the case that smokers are older than non-smokers as shown in figure \@ref(fig:1-smoke) (right), and this might be the reason why, when comparing the `fev` values in smokers and non-smokers without taking age into account, we see higher FEV values in non-smokers. This can be verified by fitting a couple of models for `fev`, one of them including only `smoke` as predictor, and the other including both `smoke` and `age`:
+
+
+```{r}
+lm(fev ~ smoke, data =d) 
+lm(fev ~ smoke + age, data =d)
+```
+
+In the first model, the estimated effect of smoking is 0.7107, suggesting that the expected FEV is 0.7107 liters higher in smokers than in non-smokers. However, in the second model the expected FEV in smokers _given the age_, is 0.2090 liters _lower_ in non-smokers than in smokers. The change in the estimated effect of smoking from the first to the second model reflects the fact that, in the former, the effect of age is not taken into account, and because age is related to smoking, its effect is _confounded_ with that of smoking. In the second model, the effect of gender is _adjusted_ by age, or estimated after partialling out the effect of age. 
+
+As seen in this example, when we want to assess the effect of a variable $X_1$ on an outcome variable $Y$, modeling provides a way to address potential confounding by including the potential confounder(s) as additional explanatory variable(s) in the model. If the effect of $X_1$ does not changes appreciably, there is no confounding. However, an appreciable change in the effect of $X_1$ is an indication of confounding.
+
+
+## Interaction (effect modification)
+
+The National Health and Nutrition Examination Survey (NHANES) is a program of studies designed to assess the health and nutritional status of adults and children in the United States. The survey examines a nationally representative sample of about 5,000 persons each year. 
+
+The dataset `calcium.RData` is an extract of the 2009-2010 NHANES survey containing complete data of calcium concentration in blood (mg/dl), gender, age, and vitamin D (nmol/l) for adults older than 25 years. 
+
+```{r echo = FALSE}
+downloadthis::download_file(
+  path = "./data/calcium.RData",
+  button_label = "Download calcium.RData",
+  button_type = "primary",
+  has_icon = TRUE,
+  icon = "fa fa-save",
+  self_contained = FALSE
+)
+```
+
+\
+
+Let's get the data file with `load()`, and explore how calcium concentration values relate to age and gender.
+
+```{r 1-ca-explore, fig.heigh = 5, fig.cap="Calcium concentration (mg/dl) by age and gender"}
+load("data/calcium.RData")
+gf_point(calcium ~ age | gender, data = calcium, color = ~gender, alpha = 0.2)
+```
+
+Figure \@ref(fig:1-ca-explore) shows a very slight decrease of calcium concentration with age in males, but a slight increase in females. Fitting a linear model with age and gender as explanatory variables implies to fit two lines, one for each gender, having different intercepts but the _same_ slope, so that it cannot accommodate what we observe in this plot. To allow for different slopes, we need to add an _interaction term_ to the model. An interaction term is a product of two explanatory variables, such as age and gender in this case. In general, a model with a term of interaction between two explanatory variables $X_1$ and $X_2$ will be of the form:
+
+$$Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_{12} X_1 X_2 +  \epsilon$$
+
+Suppose $X_1$ is a continuous variable (like `age`), and $X_2$ is an indicator for a dichotomous variable (like `gederfemale`, coded as 0 for males and 1 for females). Then, the model simplifies to the following equations for males and females:
+
+For males:
+$$Y \quad = \quad \beta_0 + \beta_1 X_1 + \beta_2 \times 0 + \beta_{12} X_1 \times 0 +  \epsilon \quad = \quad\beta_0 + \beta_1 X_1 + \epsilon$$
+
+For females:
+
+$$Y \quad = \quad \beta_0 + \beta_1 X_1 + \beta_2 \times 1 + \beta_{12} X_1 \times 1 +  \epsilon \quad = \quad (\beta_0 + \beta_2) + (\beta_1 +  \beta_{12}) X_1 + \epsilon $$
+Both equations above are straight lines, but they have a different intercept _and_ a different slope.
+
+\
+
+Interaction terms can be specified in function `lm()` in two different ways. One of them is to specify the two explanatory variables as usual (X~1~ + X~2~), and then add an additional term of the form X~1~:X~2~. The following fits a model with an interaction between age and gender using this syntax (note the colon between `age`and `gender` in the last term of the formula):
+
+```{r}
+m1 <- lm(calcium ~ age + gender + age:gender, data = calcium)
+```
+
+Alternatively, we can specify just the two explanatory variables, but using an asterisk instead of a plus sign between them (X~1~*X~2~), as in the following code (note the asterisk between `age` and `gender`):
+
+```{r}
+m1 <- lm(calcium ~ age * gender, data = calcium)
+```
+
+In both cases we are fitting the same model, with main effects for `age` and `gender`, plus a term of interaction between them. Here we summarize the fit of this model:
+
+```{r}
+summary(m1)
+```
+
+\
+
+The Wald test for the interaction term `age:genderfemale` produces a very small _p_ value, providing evidence of an interaction between `age` and `gender`. The estimated equation is:
+
+`predicted Ca = 9.5726854 -0.0024783 age -0.4282551 genderfemale + 0.0076006 age x genderfemale`
+
+which for males (`genderfemale = 0`) it simplifies to: 
+
+`predicted Ca = 9.5726854 -0.0024783 age`
+
+and for females (`genderfemale = 1`), it simplifies to:  
+
+`predicted Y = (9.5726854 -0.4282551) + (0.0076006 - 0.0024784) age`
+`= 9.14443 + 0.0051222 age`
+
+Note that the slope is negative for males, but positive for females. A graphical representation of this model is shown in figure \@ref(fig:1-ca-m1).
+
+
+```{r 1-ca-m1, fig.heigh = 5, fig.cap="Graphical representation of model m1"}
+gf_point(calcium ~ age | gender, data = calcium, color = ~gender, alpha = 0.1) %>%
+  gf_line(predict(m1) ~ age | gender, color = "black")
+```
+
+In the example we have considered, there is an interaction of a continuous and a categorical variable (age and gender, respectively). However, interactions may arise between any type of variables, like two continuous variables, or two categorical variables. In any case, the way to fit and test for interaction terms is exactly the same. 
+
+Sometimes, when there is an interaction of two explanatory variables, the term _effect modifier_ is applied to one of these variables. For instance, we could say that gender is a modifier of the effect of age on the calcium concentration, since the coefficient of age (that is, the _effect_ of age) is different in males and females. 
+
+
+## Resources {-}
+
+- [Elements of statistical learning](https://hastie.su.domains/Papers/ESLII.pdf), by T. Hastie, R. Tibshirani and J. Friedman, is a very good book on both classical and modern modeling methods, such as random forest, support vector machines or neural networks.
+
+- [Regression modeling strategies](https://www.amazon.com/Regression-Modeling-Strategies-Applications-Statistics-dp-3319194240/dp/3319194240/ref=dp_ob_title_bk), by F.Harrell, is another very good book on modeling (with R).
+
+- Be aware of common problems you may find when fitting a GLM (or othe types of multivariate model):
+    + Be aware of heteroscedasticity and [how to deal with it](https://online.stat.psu.edu/stat462/node/186/).  
+    + Be aware of what is [colinearity](https://online.stat.psu.edu/stat462/node/177/), [how to detect it](https://online.stat.psu.edu/stat462/node/180/), and [how to deal with it](https://online.stat.psu.edu/stat462/node/181/).  
+     + Be aware of [autocorrelated errors](https://online.stat.psu.edu/stat462/node/188/) and [how to deal with them](https://online.stat.psu.edu/stat462/node/189/).  
+     + Be aware of how to detect and deal with [outliers](https://www.r-bloggers.com/2019/02/robust-regressions-dealing-with-outliers-in-r/) in regression.
+     + Be aware of other pitfalls such as overfitting and extrapolation.
+
+- For influence measures other than the Cook's distance, see [this article](http://www.sthda.com/english/articles/39-regression-model-diagnostics/161-linear-regression-assumptions-and-diagnostics-in-r-essentials/#outliers-and-high-levarage-points), and see also the help of `influence.measures()` in R (`?influence.measures`).
+
+- When there are many potential predictor variables, the number of possible models can be very large, and it is not feasible to fit and assess them one at a time. Read this introduction to automated [model selection methods](http://www.sthda.com/english/articles/37-model-selection-essentials-in-r/).
+
+
+- A post on [different types of regression analysis](https://www.listendata.com/2018/03/regression-analysis.html) you may want to know about.
+
+
+## Exercises  {-}
+
+1. Figure \@ref(fig:1-model1) shows the graphical representation of `model 1`, in which `fev` is expressed as a linear function of `height` and `gender`:
+    + What is the model equation?  
+    + Why do you think the graphical representation of this model are two parallel straight lines? Hint: simplify the model equation for a male (_genderM_ = 1) and for a female (_genderM_ = 0).  
+    + Use the simplified equations to predict the FEV expected for a boy with body height = 170 cm, and for a girl having the same height. What is the difference between both predictions?  
+    + Compare your predictions with those obtained with `predict()`.
+    
+    \
+
+1. Plot the 95% probability intervals for `model1` on `fev` and for `model3` on `log(fev)`. In which of the two models the probability intervals seem to work better (i.e., include about 95% of the cases, _for any given combination of height and gender_)?
+
+    \
+
+1. Regarding `model 5`, in which `log(fev)` is expressed as a linear function of `height`, `age` and `gender`, why do you think the graphical representation of this model in figure \@ref(fig:1-model4-3d) are two parallel planes? Hint: simplify the model equation for a male (_genderM_ = 1) and for a female (_genderM_ = 0).
+    
+    \
+
+1. Produce diagnostic plots for `modle5`. Do you think that the model assumptions are reasonable?
+
+    \
+
+1. Using dataframe `d` (including smokers), fit a model for `log(fev)` with `height`, `age`, `gender` and `smoke` as predictors, and answer the following questions:
+    + According to Wald tests, are all predictor variables necessary?
+    + What is the proportion of variation of `log(fev)` explained by this model?
+    + Compare this model to `model5` fitted on all cases in `d`. Which one best fits the data? Is there a significant improvement in the model fit by adding `smoke` to `model5`?
+    
+    \
+    
+1. Dataframe `Births78` in the `mosaic` package contains the number of births registered in the USA in 1978. 
+    + Inspect a scatterplot of births by date. Taking into account that each dot is a day, what do you think is the reason for the two-wave pattern? (Hint: are the two waves equally crowded?)  
+    + Compute a new variable `day` taking values "Work", "Sat" or "Sun" (it should be a factor, with levels defined in this order), and repeat the previous plot using color for `day`. Is it now clear what is the reason for the two waves? There are a few "Work" days behaving much like weekends. Can you anticipate an explanation for this?
+    + Fit a first model (`m1`) for `births` using `day` and a polynomial of degree 5 for `month`. Produce a graphical representation of this model. Why do you think it takes the form of a step function?
+    + Fit a second model (`m2`) similar to the previous one, but using `day_of_year` instead of month; produce its graphical representation and compare it to the previous one. Which one best fits the data?
+    + Run the following code to create a new variable identifying working days that were bank holidays in 1978, fit a third model (`m3`) adding this variable to `m2`, and compare them. Is there a significant improvement in fit after adding variable `holiday` to the predictors?
+    
+    ```{r eval = FALSE}
+    h <- as.Date(c("1978-01-02", "1978-02-20", "1978-05-29", "1978-07-04", 
+                   "1978-09-04", "1978-11-11", "1978-11-23", "1978-12-25"))
+    
+    d <- d %>% mutate(holiday = ifelse(date %in% h & day == "Work",
+                                       "Yes", 
+                                       "No"))
+    ```
+    
+    + What is the proportion of the number of births variance explained by model `m3`?
+    + Assess the assumptions of model `m3` by producing diagnostic plots. Do you think the assumptions are reasonable?
+    + Do you think the assumption of independence of observations is reasonable?
+
+
+

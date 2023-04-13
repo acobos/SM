@@ -1,0 +1,48 @@
+---
+title: "Statistical Modeling for Clinical Researchers"
+author: "Albert Cobos"
+site: bookdown::bookdown_site
+documentclass: book
+output:
+  bookdown::gitbook: default
+---
+
+
+```{r setup, include=FALSE, eval = TRUE}
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      comment = NA)  
+
+```
+
+# Introduction {-}
+
+This is an introductory book on statistical or _probabilistic_ modeling for clinical researchers. There is a wide variety of statistical models, but this book covers only a few of them that are most frequently used in clinical research: the _general linear model_ (GLM), the _logistic regression model_ (LRM), and the _Cox regression model_ (CRM). 
+
+In many statistical models, statistical models express a variable (or a function of a variable)  $Y$ as a function of some other variables ($X_1, X_2, ..., X_k$). For instance, in the GML, a $Y$ variable is expressed as a function of $X$ variables plus an _error_ term ($\epsilon$):
+
+$$Y = f(X_1, X_2, ..., X_k) + \epsilon$$
+Where,
+
+- $Y$ is called the _dependent_, _predicted_, _explained_ or _outcome_ variable.
+
+- $X_1, X_2, ..., X_k$ are called _independent_, _predictor_, or _explanatory_ variables, and
+
+- $\epsilon$ is a _random variable_ with assumed to have a normal distribution.
+
+\
+
+Because attempts to express a $Y$ variable as a function of others are usually imperfect, the error term in the model represents the difference between the value of $Y$ actually observed for an individual, and the prediction obtained from the explanatory variables (denoted by $\hat{Y}$) :
+
+$$\epsilon = Y - f(X_1, X_2, ..., X_k) = Y - \hat{Y}$$
+
+Statistical modeling may be undertaken with two different goals, explanation or prediction, though in some cases both may be of interest. An example of an explanatory approach to modeling might be to understand why there is such a high variability in the number of daily births registered in the USA (in a particular year, this number ranged from about 7000 births to more than 10000 ), and what factors could explain it. In some cases, the relationships between the explanatory variables and the outcome variable are complex, and phenomena such as non-linearity, confounding or interactions  can be explored via statistical models. An example of predictive modeling is the derivation of the Friedewald formula to estimate the blood concentration of LDL-cholesterol from the total cholesterol, HDL-cholesterol and triglycerides concentrations. Another example of predictive modeling is the determination of normal ranges for the forced expiratory volume (FEV, a spirometric measure of lung function) in healthy children, from gender, age and body height. 
+
+The types of models we will cover differ mainly in the type of outcome variable ($Y$) we want to model. In a _general linear model_, the $Y$ variable is continuous. The GLM includes as particular cases many classical analysis techniques, such as the t-test or the analysis of variance (in which the $X$ variable(s) are categorical), the multiple linear regression analysys (in which $X$ variables are continuous), and the analysis of covariance (in which some $X$ variables are categorical and some are continuous). In the LRM the outcome variable is dichotomous, such as success or failure of a treatment. Last, in the CRM (also called Cox _proportional hazards_ model) the outcome variable is the time until an event occurs, be it death or other. In all these types of models, the explanatory variables can be categorical, quantitative, or a mixture of both.
+
+Finally, a warning on terminology. The term general*ized* linear model is sometimes used to refer to a family of models that includes as particular cases the GLM, the LRM, and some other models, but not the CRM. Beware not to confuse *generalized* linear models with the *general* linear model, which is a particular case of the former. In many books on generalized linar models, the acronim GLM is used. However, in this book we use GLM as an acronim for the general linear model.
+
+
+```{r 0-clean, echo=FALSE, eval=TRUE}
+rm(list = ls())
+```
