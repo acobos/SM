@@ -647,7 +647,7 @@ ln(\frac{\pi}{1-\pi}) = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + ... \beta_p X_p
 <pre><code>(Intercept)        tbsa    flameYes 
 -4.10581359  0.07811869  1.26715789 </code></pre>
 <p>What the output shows is the estimates of the coefficients in the linear predictor. Thus, the estimated model is (rounding the coefficients to the fourth decimal):</p>
-<p><span class="math inline">\(ln(\frac{\pi}{1-\pi})\)</span> <code>= -3.3451 + 0.0854 tbsa</code></p>
+<p><span class="math inline">\(ln(\frac{\pi}{1-\pi})\)</span> <code>= -4.1058 + 0.0781 tbsa + 1.2672 flameYes</code></p>
 </div>
 <div id="interpretation-of-model-coefficients" class="section level2 hasAnchor" number="2.3">
 <h2><span class="header-section-number">2.3</span> Interpretation of model coefficients<a href="the-logistic-regression-model-lrm.html#interpretation-of-model-coefficients" class="anchor-section" aria-label="Anchor link to header"></a></h2>
@@ -700,7 +700,7 @@ flameYes     0.71873320  1.8604831</code></pre>
 tbsa        1.067361577 1.09677560
 flameYes    2.051832300 6.42684078</code></pre>
 <p>From the output we can say that the 95% CI for the OR of <code>tbsa</code> ranges from 1.07 to 1.1 (rounded to the second decimal).</p>
-<p>You may find practical the following code to merge the point estimates and their correponding CI’s for the exponentiated model coefficients. We first use <code>rbind()</code> to merge point estimates and CI’s, and then round to the desired number of decimals:</p>
+<p>You may find practical the following code to merge the point estimates and their correponding CI’s for the exponentiated model coefficients. We first use <code>cbind()</code> to merge point estimates and CI’s, and then round to the desired number of decimals:</p>
 <div class="sourceCode" id="cb96"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb96-1"><a href="the-logistic-regression-model-lrm.html#cb96-1" aria-hidden="true" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="at">Estimate =</span> <span class="fu">exp</span>(<span class="fu">coef</span>(m_tf)), <span class="fu">exp</span>(<span class="fu">confint</span>(m_tf))) <span class="sc">%&gt;%</span> <span class="fu">round</span>(<span class="dv">2</span>)</span>
 <span id="cb96-2"><a href="the-logistic-regression-model-lrm.html#cb96-2" aria-hidden="true" tabindex="-1"></a>res</span></code></pre></div>
 <pre><code>            Estimate 2.5 % 97.5 %

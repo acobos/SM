@@ -108,7 +108,7 @@ coef(m_tf)
 
 What the output shows is the estimates of the coefficients in the linear predictor. Thus, the estimated model is (rounding the coefficients to the fourth decimal):
 
-$ln(\frac{\pi}{1-\pi})$ `= -3.3451 + 0.0854 tbsa`
+$ln(\frac{\pi}{1-\pi})$ `= -4.1058 + 0.0781 tbsa + 1.2672 flameYes`
 
 
 ## Interpretation of model coefficients
@@ -182,7 +182,7 @@ exp(confint(m_tf))
 
 From the output we can say that the 95% CI for the OR of `tbsa` ranges from `r exp(confint(m_tf))[2,] %>% round(2) %>% paste(collapse=" to ")` (rounded to the second decimal). 
 
-You may find practical the following code to merge the point estimates and their correponding CI's for the exponentiated model coefficients. We first use `rbind()` to merge point estimates and CI's, and then round to the desired number of decimals:
+You may find practical the following code to merge the point estimates and their correponding CI's for the exponentiated model coefficients. We first use `cbind()` to merge point estimates and CI's, and then round to the desired number of decimals:
 
 ```{r}
 res <- cbind(Estimate = exp(coef(m_tf)), exp(confint(m_tf))) %>% round(2)
